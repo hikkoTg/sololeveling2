@@ -1,0 +1,2108 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <!-- Crucial viewport settings for responsiveness -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Поднятие уровня в одиночку – Главная</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS */
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes neonFlicker {
+          0%, 100% { opacity: 1; text-shadow: 0 0 10px #9d00ff, 0 0 20px #9d00ff, 0 0 30px #9d00ff; }
+          50% { opacity: 0.8; text-shadow: 0 0 5px #9d00ff, 0 0 10px #9d00ff, 0 0 15px #9d00ff; }
+        }
+
+        /* Sidebar animation */
+        @keyframes slideInFromLeft {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+         @keyframes slideOutToLeft {
+          from { transform: translateX(0); }
+          to { transform: translateX(-100%); }
+        }
+
+        body {
+          /* REMOVED animated gradient, ADDED fallback background color */
+          background-color: #0a0a0a;
+          font-family: 'Inter', sans-serif;
+          overflow-x: hidden; /* Prevent horizontal scroll */
+          touch-action: manipulation; /* Improve touch responsiveness */
+        }
+        
+        /* NEW: Styles for the video background */
+        #video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -101; /* Behind the stars canvas */
+            object-fit: cover; /* Ensures video covers the screen */
+            filter: brightness(0.6); /* Darken video for text readability */
+        }
+
+        /* Class added to body when mobile sidebar is open */
+        body.body-no-scroll {
+            overflow: hidden;
+        }
+
+        #starsCanvas {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: -100;
+          pointer-events: none;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.8);
+          display: none; /* Controlled by JS */
+          justify-content: center;
+          align-items: center;
+          z-index: 1000; /* Above content, below modals if needed */
+          overflow-y: auto;
+          padding: 20px;
+          backdrop-filter: blur(3px); /* Optional: blur background */
+        }
+
+        .modal-content {
+          width: 100%;
+          max-width: 450px; /* Slightly wider for time inputs */
+          max-height: 90vh; /* Limit modal height */
+          overflow-y: auto; /* Enable scrolling within modal */
+          -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+          background-color: #1f2937; /* Slightly lighter than body for contrast */
+          border: 1px solid #374151;
+          border-radius: 0.5rem;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+          position: relative; /* Added for close button positioning */
+        }
+
+        .notification {
+          position: fixed;
+          bottom: 20px;
+          left: 50%; /* Center horizontally */
+          transform: translateX(-50%); /* Adjust centering */
+          width: auto; /* Adjust width based on content */
+          max-width: 90%; /* Limit max width */
+          background: rgba(0,0,0,0.8);
+          color: #00ccff;
+          padding: 12px 18px; /* Slightly more padding */
+          border-radius: 8px;
+          font-weight: bold;
+          box-shadow: 0 0 15px rgba(0,204,255,0.5);
+          display: none;
+          z-index: 9999; /* Highest */
+          opacity: 0; /* Start hidden for fade-in */
+          transition: opacity 0.3s ease-out; /* Add transition for fade */
+          text-align: center;
+        }
+         .notification.show { /* Class to show notification */
+            display: block;
+            opacity: 1;
+        }
+
+        .exp-square {
+          transition: all 0.2s ease;
+          cursor: pointer; /* Indicate squares are clickable */
+        }
+
+        .exp-square.filled {
+          background: #00ccff;
+        }
+
+        .exp-square:hover { /* Add hover effect */
+            border-color: #ffff00;
+            transform: scale(1.1);
+        }
+
+        /* Sidebar base styles */
+        .sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 256px; /* Slightly wider */
+          height: 100%; /* Full height */
+          background-color: rgba(10, 10, 10, 0.9); /* Slightly darker bg */
+          backdrop-filter: blur(8px); /* Stronger blur */
+          border-right: 1px solid rgba(0, 204, 255, 0.2); /* Subtler border */
+          box-shadow: 0 4px 15px rgba(0, 204, 255, 0.1);
+          z-index: 500; /* High z-index */
+          display: flex;
+          flex-direction: column;
+          transform: translateX(-100%); /* Start hidden off-screen */
+          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Smoother ease */
+        }
+
+        /* Sidebar when open */
+        .sidebar.open {
+          transform: translateX(0); /* Slide in */
+        }
+
+        /* Mobile Sidebar Overlay */
+        #sidebarOverlay {
+          position: fixed;
+          inset: 0;
+          background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+          z-index: 499; /* Just below sidebar */
+          opacity: 0; /* Start hidden */
+          transition: opacity 0.3s ease-in-out;
+          pointer-events: none; /* Don't block clicks when hidden */
+        }
+        #sidebarOverlay.active { /* Show overlay when sidebar is open */
+            opacity: 1;
+            pointer-events: auto; /* Allow clicks to close sidebar */
+        }
+
+        /* Hide Overlay and Toggle Button on Desktop */
+         @media (min-width: 768px) { /* md breakpoint */
+             #sidebarOverlay {
+                 display: none !important;
+             }
+             #sidebarToggle {
+                 display: none !important;
+             }
+             /* Keep sidebar fixed on desktop */
+             .sidebar {
+                  transform: translateX(0); /* Always visible */
+             }
+         }
+
+        .sidebar-menu-item {
+          transition: all 0.2s ease; /* Faster transition for hover */
+        }
+
+        .sidebar-menu-item:hover {
+          background: rgba(0, 204, 255, 0.1);
+          box-shadow: 0 0 10px rgba(0,204,255,0.15);
+          transform: translateX(4px); /* Slight move on hover */
+          color: #fff; /* Brighter text on hover */
+        }
+
+        .task-item.completed { /* More visible completed state */
+            background-color: rgba(55, 65, 81, 0.5); /* Grayish background */
+            border-color: #4b5563;
+            opacity: 0.7;
+        }
+        .task-item.completed .task-name {
+          text-decoration: line-through;
+          color: #9ca3af; /* Lighter gray */
+        }
+        .task-item.reminder-past { /* Style for temporary tasks whose reminder time has passed */
+            border-left: 3px solid #f59e0b; /* Amber border */
+        }
+
+        /* Neon Purple for level 100+ */
+        .neon-purple {
+          color: #9d00ff;
+          text-shadow: 0 0 10px #9d00ff, 0 0 20px #9d00ff;
+          animation: neonFlicker 1.5s infinite alternate;
+        }
+
+        .neon-purple-border {
+          border-color: #9d00ff !important; /* Use important if needed */
+          box-shadow: 0 0 15px rgba(157, 0, 255, 0.5);
+        }
+
+        .neon-purple-bg {
+          background: linear-gradient(135deg, rgba(157, 0, 255, 0.1), rgba(157, 0, 255, 0.05)) !important; /* Subtle gradient */
+        }
+
+        /* Mobile optimizations */
+        .mobile-tap-highlight {
+          -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
+        }
+
+        .mobile-scrollable {
+          -webkit-overflow-scrolling: touch; /* iOS momentum scrolling */
+        }
+
+        /* Hide scrollbar but allow scrolling */
+        .hide-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none; /* Chrome, Safari, Opera */
+        }
+
+        /* Responsive text sizes & buttons (Adjusted) */
+        @media (max-width: 640px) { /* sm breakpoint */
+          .responsive-text {
+            font-size: 0.9rem;
+          }
+           .responsive-heading {
+            font-size: 1.5rem; /* Slightly smaller on very small screens */
+          }
+          .responsive-button {
+            padding: 0.7rem 1rem; /* Larger tap area */
+            font-size: 0.9rem;
+          }
+          .task-item {
+             padding: 0.6rem; /* Adjust task padding */
+          }
+          .task-item .text-xs { /* Make task details slightly larger on mobile */
+            font-size: 0.8rem;
+          }
+          /* Ensure timer inputs are usable */
+          .timer-input {
+              width: 5rem; /* Fixed width for timer inputs */
+          }
+        }
+
+        /* JSON input modal specific styles */
+        #jsonInputModal textarea {
+          min-height: 200px;
+          font-family: monospace;
+          white-space: pre;
+          background-color: #1a1a1a; /* Darker background for code */
+          border: 1px solid #444;
+        }
+
+        /* Style for task time inputs */
+        .task-time-input {
+            background-color: #374151;
+            border: 1px solid #4b5563;
+            color: #e5e7eb;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            width: 100%;
+        }
+         .task-time-input:focus {
+             outline: none;
+             border-color: #0ea5e9; /* cyan-500 */
+             box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.5);
+         }
+
+         /* Hide elements */
+         .hidden-input {
+             display: none;
+         }
+
+         /* Multi-step modal styles */
+        .modal-step {
+            display: none; /* Hide all steps by default */
+        }
+        .modal-step.active-step {
+            display: block; /* Show only the active step */
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* NEW: Styles for the skill star link */
+        .skill-star {
+            color: #f59e0b; /* amber-500 */
+            font-size: 1.25rem; /* text-xl */
+            opacity: 0;
+            transform: scale(0.5) rotate(-90deg);
+            transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+            pointer-events: none;
+            line-height: 1; /* To align better with text */
+        }
+
+        .skill-star.visible {
+            opacity: 1;
+            transform: scale(1) rotate(0deg);
+            pointer-events: auto;
+            animation: starPulse 2s infinite;
+        }
+
+        .skill-star:hover {
+            color: #facc15; /* yellow-400 */
+            transform: scale(1.15); /* Keep scale effect on hover */
+        }
+        
+        @keyframes starPulse {
+            0%, 100% { transform: scale(1); text-shadow: 0 0 4px #f59e0b; }
+            50% { transform: scale(1.1); text-shadow: 0 0 12px #facc15, 0 0 20px #f59e0b; }
+        }
+
+        #skillNameDisplay { flex-shrink: 1; min-width: 0; }
+
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<script src="sounds.js" defer></script>
+<!-- Add md:pl-64 for desktop sidebar spacing -->
+<body class="text-gray-200 min-h-screen relative md:pl-64 mobile-tap-highlight">
+
+<!-- NEW: Video Background -->
+<video autoplay loop muted playsinline id="video-background" style="display: none;">
+    <source src="background.mp4" type="video/mp4">
+    Ваш браузер не поддерживает тег video.
+</video>
+
+<!-- Mobile Sidebar Overlay - Active class toggled by JS -->
+<div id="sidebarOverlay" class="md:hidden"></div>
+
+<!-- Enhanced Sidebar -->
+<div class="sidebar flex flex-col hide-scrollbar"> <!-- Base class, 'open' toggled by JS -->
+    <!-- Sidebar Header -->
+    <div class="p-4 border-b border-cyan-500 border-opacity-20 flex-shrink-0">
+        <div class="flex items-center justify-start space-x-3">
+            <div class="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-user-shield text-black"></i>
+            </div>
+            <div class="min-w-0">
+                <h2 class="text-lg font-bold text-cyan-400 truncate">Поднятие уровня</h2>
+                <p class="text-xs text-gray-400 truncate" id="userInfo">Гость</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Navigation - Scrollable Area -->
+    <div class="flex-1 overflow-y-auto mobile-scrollable py-2">
+        <!-- Main Navigation -->
+        <div class="px-4 py-2">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">Навигация</h3>
+            <a href="#" class="sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white mb-1">
+                <i class="fas fa-home w-5 text-center"></i>
+                <span>Главная</span>
+            </a>
+            <button onclick="location.href='page2.html'" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white w-full text-left mb-1">
+                <i class="fas fa-level-up-alt w-5 text-center"></i>
+                <span>Прокачка</span>
+            </button>
+            <!-- *** NEW RADAR BUTTON (SIDEBAR) *** -->
+            <button onclick="location.href='radar.html'" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white w-full text-left mb-1">
+                <i class="fas fa-broadcast-tower w-5 text-center"></i> <!-- Changed icon -->
+                <span>Радар</span>
+            </button>
+            <!-- *** END NEW RADAR BUTTON (SIDEBAR) *** -->
+            <a href="#" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white mb-1">
+                <i class="fas fa-trophy w-5 text-center"></i>
+                <span>Достижения</span>
+            </a>
+            <a href="#" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white mb-1">
+                <i class="fas fa-chart-line w-5 text-center"></i>
+                <span>Статистика</span>
+            </a>
+        </div>
+
+        <!-- Skills Section -->
+        <div class="px-4 py-2 border-t border-gray-800 border-opacity-50">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">Навыки</h3>
+            <button onclick="addNewSkill()" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white w-full text-left mb-1">
+                <i class="fas fa-plus-circle w-5 text-center"></i>
+                <span>Добавить навык</span>
+            </button>
+            <button onclick="openSkillsManager()" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white w-full text-left mb-1">
+                <i class="fas fa-list w-5 text-center"></i>
+                <span>Мои навыки</span>
+            </button>
+        </div>
+
+        <!-- Data Management Section -->
+        <div class="px-4 py-2 border-t border-gray-800 border-opacity-50">
+            <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-3">Данные</h3>
+            <button onclick="copyDataAsJSON()" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white w-full text-left mb-1">
+                <i class="fas fa-copy w-5 text-center"></i>
+                <span>Копировать</span>
+            </button>
+            <button onclick="openJsonInputModal()" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white w-full text-left mb-1">
+                <i class="fas fa-code w-5 text-center"></i>
+                <span>Ввести JSON</span>
+            </button>
+            <button id="downloadJsonBtn" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white w-full text-left mb-1">
+                <i class="fas fa-download w-5 text-center"></i>
+                <span>Скачать</span>
+            </button>
+            <button id="uploadJsonBtn" class="clickable-sound sidebar-menu-item flex items-center space-x-3 px-3 py-2 rounded-lg text-cyan-400 hover:text-white w-full text-left mb-1">
+                <i class="fas fa-upload w-5 text-center"></i>
+                <span>Загрузить</span>
+            </button>
+            <input type="file" id="jsonFileInput" class="hidden" accept="application/json" />
+        </div>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="p-3 border-t border-gray-800 border-opacity-50 bg-black bg-opacity-20 flex-shrink-0">
+        <a href="login.html" id="regBtn" class="clickable-sound w-full flex items-center justify-center space-x-2 bg-cyan-500 hover:bg-cyan-600 text-black font-medium py-2 px-3 rounded-lg transition-all duration-300 shadow-lg shadow-cyan-500/20 responsive-button">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Войти / Регистрация</span>
+        </a>
+        <a href="settings.html" class="clickable-sound w-full flex items-center justify-center space-x-2 bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-3 rounded-lg transition-all duration-300 mt-2 responsive-button">
+            <i class="fas fa-cog"></i>
+            <span>Настройки</span>
+        </a>
+    </div>
+</div>
+
+<!-- Mobile Sidebar Toggle -->
+<button id="sidebarToggle" class="clickable-sound fixed top-4 left-4 z-[501] w-10 h-10 rounded-full bg-cyan-500 text-black flex items-center justify-center shadow-lg md:hidden">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Main Content -->
+<div class="main-content p-4 md:p-6 lg:p-8"> <!-- Added more padding for larger screens -->
+    <!-- Header -->
+    <h1 class="text-2xl md:text-3xl lg:text-4xl font-bold text-center text-cyan-400 mb-6 responsive-heading">Поднятие уровня в одиночку</h1>
+
+    <!-- Action Buttons: Upgrade & Radar -->
+    <div class="flex justify-end flex-wrap gap-3 mb-6"> <!-- Added flex-wrap and gap for responsiveness -->
+        <!-- Radar Button -->
+        <button onclick="location.href='radar.html'" class="clickable-sound bg-teal-500 hover:bg-teal-600 text-black font-medium py-2 px-4 rounded-lg transition-all duration-300 shadow-lg shadow-teal-500/30 responsive-button">
+            <i class="fas fa-broadcast-tower mr-2"></i> Радар
+        </button>
+        <!-- Upgrade Button -->
+        <button onclick="location.href='page2.html'" class="clickable-sound bg-cyan-500 hover:bg-cyan-600 text-black font-medium py-2 px-4 rounded-lg transition-all duration-300 shadow-lg shadow-cyan-500/30 responsive-button">
+            <i class="fas fa-level-up-alt mr-2"></i> Перейти к прокачке
+        </button>
+    </div>
+
+    <!-- Current Skill Section -->
+    <div class="bg-black bg-opacity-50 border border-cyan-500 rounded-xl p-4 md:p-6 mb-6 shadow-lg shadow-cyan-500/20 backdrop-blur-sm">
+        <h2 class="text-lg md:text-xl font-semibold text-cyan-400 mb-4">Текущий навык:</h2>
+
+        <div class="flex items-center justify-between space-x-2 md:space-x-4">
+            <button class="clickable-sound text-xl md:text-2xl bg-cyan-500 hover:bg-cyan-600 text-black rounded-full w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center transition-all" onclick="prevSkill()" aria-label="Предыдущий навык">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+
+            <div class="skill-block relative bg-gradient-to-br from-gray-900 to-black border border-cyan-500 rounded-lg p-3 md:p-5 mx-1 flex-1 cursor-pointer transform hover:scale-[1.01] transition-all hover:shadow-lg hover:shadow-cyan-500/20 min-w-0"
+                 id="skillBlock" onclick="openSkillModal()">
+
+                <h3 class="text-lg md:text-xl font-bold text-cyan-400 truncate mb-2" id="skillNameDisplay">Название навыка</h3>
+
+                <div class="skill-info">
+                    <div class="text-gray-300 mb-3 responsive-text flex items-center">
+                        <span>Уровень:</span>
+                        <a href="skills.html" id="skillStarLink" onclick="event.stopPropagation()" class="clickable-sound skill-star ml-2" title="Редактор блоков">
+                            <i class="fas fa-star"></i>
+                        </a>
+                        <span class="font-bold text-white ml-1" id="skillLevelDisplay">1</span>
+                    </div>
+                    <div class="skill-exp flex flex-wrap gap-1.5 md:gap-2" id="skillExpDisplay">
+                        <!-- EXP Squares rendered by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <button class="clickable-sound text-xl md:text-2xl bg-cyan-500 hover:bg-cyan-600 text-black rounded-full w-8 h-8 md:w-10 md:h-10 flex-shrink-0 flex items-center justify-center transition-all" onclick="nextSkill()" aria-label="Следующий навык">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="mt-5 flex justify-center">
+            <button onclick="addNewSkill()" class="clickable-sound bg-cyan-500 hover:bg-cyan-600 text-black font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button">
+                <i class="fas fa-plus-circle mr-2"></i> Добавить новый навык
+            </button>
+        </div>
+    </div>
+
+    <!-- Tasks Section -->
+    <div class="bg-black bg-opacity-50 border border-cyan-500 rounded-xl p-4 md:p-6 mb-6 shadow-lg shadow-cyan-500/20 backdrop-blur-sm" id="allTaskSection">
+        <h2 class="text-lg md:text-xl font-semibold text-cyan-400 mb-4">Все задания</h2>
+
+        <!-- Button to open multi-step task creation modal -->
+        <div class="mb-4">
+            <button id="openMultiStepTaskBtn" class="clickable-sound bg-cyan-500 hover:bg-cyan-600 text-black font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button">
+                <i class="fas fa-plus mr-2"></i> Создать задание
+            </button>
+        </div>
+
+        <!-- Task List -->
+        <div id="taskList" class="space-y-3">
+             <!-- Tasks will be rendered here by JS -->
+             <p class="text-center text-gray-500 italic">Загрузка заданий...</p>
+        </div>
+    </div>
+
+    <!-- Timer Section -->
+    <div class="bg-black bg-opacity-50 border border-cyan-500 rounded-xl p-4 md:p-6 shadow-lg shadow-cyan-500/20 backdrop-blur-sm">
+        <h2 class="text-lg md:text-xl font-semibold text-cyan-400 mb-4">Таймер</h2>
+
+        <div class="text-center mb-5">
+            <div class="text-4xl md:text-5xl font-bold text-cyan-400 tracking-wider font-mono" id="timerDisplay">00:00:00</div>
+        </div>
+
+        <div class="flex flex-wrap justify-center gap-2 md:gap-3 mb-5">
+            <button id="startTimerBtn" onclick="startTimer()" class="clickable-sound bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button flex-grow sm:flex-grow-0">
+                <i class="fas fa-play mr-2"></i> Старт
+            </button>
+            <button id="pauseTimerBtn" onclick="pauseTimer()" class="clickable-sound bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button flex-grow sm:flex-grow-0">
+                <i class="fas fa-pause mr-2"></i> Пауза
+            </button>
+            <button id="resetTimerBtn" onclick="resetTimer()" class="clickable-sound bg-red-500 hover:bg-red-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button flex-grow sm:flex-grow-0">
+                <i class="fas fa-stop mr-2"></i> Сброс
+            </button>
+        </div>
+
+        <!-- Timer Inputs -->
+        <div class="flex flex-wrap justify-center items-center gap-2 md:gap-3">
+            <input type="number" id="hoursInput" placeholder="ЧЧ" min="0" max="99" value="0" class="timer-input bg-gray-900 bg-opacity-70 border border-gray-700 rounded-lg px-3 py-2.5 w-20 text-center focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text" aria-label="Часы">
+            <span class="text-gray-400 text-xl">:</span>
+            <input type="number" id="minutesInput" placeholder="ММ" min="0" max="59" value="0" class="timer-input bg-gray-900 bg-opacity-70 border border-gray-700 rounded-lg px-3 py-2.5 w-20 text-center focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text" aria-label="Минуты">
+             <span class="text-gray-400 text-xl">:</span>
+            <input type="number" id="secondsInput" placeholder="СС" min="0" max="59" value="0" class="timer-input bg-gray-900 bg-opacity-70 border border-gray-700 rounded-lg px-3 py-2.5 w-20 text-center focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text" aria-label="Секунды">
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="skillModalOverlay">
+    <div class="modal-content p-4 md:p-6 hide-scrollbar">
+        <h3 class="text-lg md:text-xl font-bold text-cyan-400 mb-4">Редактировать навык</h3>
+        <div class="space-y-4 mb-4">
+            <div>
+                <label for="modalSkillNameInput" class="block text-sm font-medium text-gray-300 mb-1">Название</label>
+                <input type="text" id="modalSkillNameInput" placeholder="Введите название навыка" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text">
+            </div>
+            <div>
+                <label for="modalSkillLevelInput" class="block text-sm font-medium text-gray-300 mb-1">Уровень (≥1)</label>
+                <input type="number" id="modalSkillLevelInput" inputmode="numeric" pattern="[0-9]*" min="1" value="1" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text">
+            </div>
+            <div>
+                <label for="modalSkillExpInput" class="block text-sm font-medium text-gray-300 mb-1">Опыт (0-5)</label>
+                <input type="number" id="modalSkillExpInput" inputmode="numeric" pattern="[0-5]" min="0" max="5" value="0" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text">
+            </div>
+            <div>
+                <label for="modalSkillDescInput" class="block text-sm font-medium text-gray-300 mb-1">Описание</label>
+                <textarea id="modalSkillDescInput" placeholder="Введите описание навыка" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text"></textarea>
+            </div>
+        </div>
+        <div class="flex justify-between items-center gap-3">
+            <button class="clickable-sound bg-red-600 hover:bg-red-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button" onclick="deleteCurrentSkill()">
+                <i class="fas fa-trash-alt mr-2"></i>Удалить
+            </button>
+            <div class="flex justify-end gap-3">
+                <button class="clickable-sound bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button" onclick="closeSkillModal()">
+                    Отмена
+                </button>
+                <button class="clickable-sound bg-cyan-500 hover:bg-cyan-600 text-black font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button" onclick="saveSkillModal()">
+                    Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="taskModalOverlay">
+     <div class="modal-content p-4 md:p-6 hide-scrollbar">
+        <h3 class="text-lg md:text-xl font-bold text-cyan-400 mb-4">Редактировать задание</h3>
+        <div class="space-y-4 mb-4">
+            <div>
+                <label for="modalTaskNameInput" class="block text-sm font-medium text-gray-300 mb-1">Название</label>
+                <input type="text" id="modalTaskNameInput" placeholder="Введите название задания" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text">
+            </div>
+            <div>
+                <label for="modalTaskRewardInput" class="block text-sm font-medium text-gray-300 mb-1">Награда (XP)</label>
+                <input type="text" id="modalTaskRewardInput" inputmode="numeric" pattern="[0-9]*" placeholder="Введите награду" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text">
+            </div>
+            <div>
+                <label for="modalTaskDescInput" class="block text-sm font-medium text-gray-300 mb-1">Описание</label>
+                <textarea id="modalTaskDescInput" placeholder="Введите описание задания" rows="3" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text"></textarea>
+            </div>
+            <div>
+                <label for="modalTaskTypeSelect" class="block text-sm font-medium text-gray-300 mb-1">Тип</label>
+                <select id="modalTaskTypeSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-gray-200 responsive-text">
+                    <option value="temporary">Временное</option>
+                    <option value="daily">Ежедневное</option>
+                </select>
+            </div>
+            <div>
+                <label for="modalTaskXpSkillSelect" class="block text-sm font-medium text-gray-300 mb-1">Навык для XP</label>
+                <select id="modalTaskXpSkillSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-gray-200 responsive-text">
+                    <!-- Options populated by JS -->
+                </select>
+            </div>
+            <div id="modalTaskTimeInputsContainer" class="grid grid-cols-1 gap-3">
+                 <div id="modalTaskDailyTimeDiv" class="hidden-input">
+                     <label for="modalTaskDailyTimeInput" class="block text-sm font-medium text-gray-300 mb-1">Время уведомления (Ежедн.)</label>
+                     <input type="time" id="modalTaskDailyTimeInput" class="task-time-input responsive-text">
+                 </div>
+                 <div id="modalTaskTempReminderDiv" class="hidden-input">
+                     <label for="modalTaskTempReminderInput" class="block text-sm font-medium text-gray-300 mb-1">Напомнить в (Врем.)</label>
+                     <input type="datetime-local" id="modalTaskTempReminderInput" class="task-time-input responsive-text">
+                 </div>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3">
+            <button class="clickable-sound bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button" onclick="closeTaskModal()">
+                Отмена
+            </button>
+            <button class="clickable-sound bg-cyan-500 hover:bg-cyan-600 text-black font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button" onclick="saveTaskModal()">
+                Сохранить
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- JSON Input Modal -->
+<div class="modal-overlay" id="jsonInputModal">
+    <div class="modal-content p-4 md:p-6 hide-scrollbar">
+        <h3 class="text-lg md:text-xl font-bold text-cyan-400 mb-4">Ввести JSON данные</h3>
+        <div class="space-y-4 mb-4">
+            <div>
+                <label for="jsonDataInput" class="block text-sm font-medium text-gray-300 mb-1">JSON</label>
+                <textarea id="jsonDataInput" placeholder="Вставьте сюда JSON данные..." rows="10" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text font-mono text-sm"></textarea>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3">
+            <button class="clickable-sound bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button" onclick="closeJsonInputModal()">
+                Отмена
+            </button>
+            <button class="clickable-sound bg-cyan-500 hover:bg-cyan-600 text-black font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button" onclick="importJsonData()">
+                Импортировать
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Multi-Step Task Creation Modal -->
+<div class="modal-overlay" id="multiStepTaskModal">
+    <div class="modal-content p-0 hide-scrollbar flex flex-col">
+        <div class="p-4 md:p-6 border-b border-gray-700 flex justify-between items-center flex-shrink-0">
+            <h3 class="text-lg md:text-xl font-bold text-cyan-400">Новое задание</h3>
+            <span id="modalStepIndicator" class="text-sm font-medium text-gray-400">Шаг 1 из 4</span>
+        </div>
+        <div class="p-4 md:p-6 flex-1 overflow-y-auto mobile-scrollable">
+            <div id="taskStep1" class="modal-step active-step space-y-4">
+                <div>
+                    <label for="multiStepTaskName" class="block text-sm font-medium text-gray-300 mb-1">Название задания</label>
+                    <input type="text" id="multiStepTaskName" placeholder="Например, 'Утренняя пробежка'" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text">
+                </div>
+                <div>
+                    <label for="multiStepTaskDesc" class="block text-sm font-medium text-gray-300 mb-1">Описание (необязательно)</label>
+                    <textarea id="multiStepTaskDesc" placeholder="Любые детали или заметки..." rows="4" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text"></textarea>
+                </div>
+            </div>
+            <div id="taskStep2" class="modal-step space-y-4">
+                <div>
+                    <label for="multiStepTaskType" class="block text-sm font-medium text-gray-300 mb-1">Тип задания</label>
+                    <select id="multiStepTaskType" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-gray-200 responsive-text">
+                        <option value="temporary">Временное</option>
+                        <option value="daily">Ежедневное</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="multiStepTaskReward" class="block text-sm font-medium text-gray-300 mb-1">Награда (XP, необязательно)</label>
+                    <input type="number" id="multiStepTaskReward" inputmode="numeric" pattern="[0-9]*" min="0" placeholder="Например, 10" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 responsive-text">
+                </div>
+                <div>
+                    <label for="multiStepTaskXpSkill" class="block text-sm font-medium text-gray-300 mb-1">Навык для XP</label>
+                    <select id="multiStepTaskXpSkill" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-gray-200 responsive-text">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+            </div>
+            <div id="taskStep3" class="modal-step space-y-4">
+                <div id="multiStepDailyTimeContainer" class="hidden-input">
+                     <label for="multiStepDailyTimeInput" class="block text-sm font-medium text-gray-300 mb-1">Время уведомления (Ежедн.)</label>
+                     <input type="time" id="multiStepDailyTimeInput" class="task-time-input responsive-text">
+                </div>
+                <div id="multiStepTempReminderContainer" class="hidden-input">
+                     <label for="multiStepTempReminderInput" class="block text-sm font-medium text-gray-300 mb-1">Напомнить в (Врем.)</label>
+                     <input type="datetime-local" id="multiStepTempReminderInput" class="task-time-input responsive-text">
+                </div>
+                <p id="schedulingHelpText" class="text-sm text-gray-400 italic">Настройте время уведомления. Этот шаг необязателен.</p>
+            </div>
+            <div id="taskStep4" class="modal-step space-y-3">
+                <h4 class="text-md font-semibold text-cyan-300 border-b border-gray-600 pb-2">Проверьте детали задания</h4>
+                <div id="taskReviewContent" class="text-gray-300 space-y-2 responsive-text">
+                    <!-- Review content will be generated by JS -->
+                </div>
+            </div>
+        </div>
+        <div class="p-4 md:p-6 border-t border-gray-700 bg-gray-900 bg-opacity-50 flex justify-between items-center flex-shrink-0">
+             <button class="clickable-sound bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button" onclick="closeMultiStepTaskModal()">
+                Отмена
+            </button>
+            <div>
+                <button id="multiStepPrevBtn" class="clickable-sound bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button mr-2">
+                    Назад
+                </button>
+                <button id="multiStepNextBtn" class="clickable-sound bg-cyan-500 hover:bg-cyan-600 text-black font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button">
+                    Далее
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Missed Daily Task Modal (MODIFIED) -->
+<div class="modal-overlay" id="missedTaskModal">
+    <div class="modal-content p-4 md:p-6 hide-scrollbar">
+        <button id="closeMissedTaskBtn" title="Закрыть все уведомления" class="clickable-sound absolute top-2 right-3 text-gray-400 hover:text-white text-2xl font-bold transition-colors">
+            &times;
+        </button>
+        <h3 class="text-lg md:text-xl font-bold text-yellow-400 mb-4">Пропущенное задание</h3>
+        <div class="space-y-4 mb-5">
+            <p class="responsive-text">Вы пропустили ежедневное задание: <strong id="missedTaskName" class="text-white"></strong></p>
+            <p class="text-sm text-gray-400">Что бы вы хотели с ним сделать?</p>
+        </div>
+        <div class="flex justify-end gap-3">
+            <button id="deleteMissedTaskBtn" title="Удалить задание" class="clickable-sound bg-red-600 hover:bg-red-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button">
+                <i class="fas fa-trash-alt mr-1"></i> Удалить
+            </button>
+            <button id="completeMissedTaskBtn" title="Выполнить и поставить на перезарядку (13 ч)" class="clickable-sound bg-green-600 hover:bg-green-500 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button">
+                <i class="fas fa-check mr-1"></i> Выполнено
+            </button>
+            <button id="keepMissedTaskBtn" title="Пропустить" class="clickable-sound bg-cyan-500 hover:bg-cyan-600 text-black font-medium py-2 px-4 rounded-lg transition-all duration-300 responsive-button">
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Notification -->
+<div class="notification" id="notification"></div>
+
+<!-- JavaScript -->
+<script>
+    // --- Global Variables ---
+    const STORAGE_KEY = "levelUpData_v1_1";
+    let data = { skills: [], tasks: [] };
+    let currentSkillIndex = -1;
+    let currentTaskId = null;
+    let isSidebarOpen = false;
+    let notificationCheckInterval = null;
+    let cleanupInterval = null;
+    let currentTaskCreationStep = 1;
+    let newTaskData = {};
+    let missedTaskQueue = [];
+
+
+    // --- DOM Element References ---
+    const sidebarElement = document.querySelector('.sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const bodyElement = document.body;
+    const notificationElement = document.getElementById("notification");
+    const modalTaskTypeSelect = document.getElementById('modalTaskTypeSelect');
+    const modalTaskTimeInputsContainer = document.getElementById('modalTaskTimeInputsContainer');
+    const modalTaskDailyTimeDiv = document.getElementById('modalTaskDailyTimeDiv');
+    const modalTaskTempReminderDiv = document.getElementById('modalTaskTempReminderDiv');
+    const multiStepTaskModal = document.getElementById('multiStepTaskModal');
+    const modalStepIndicator = document.getElementById('modalStepIndicator');
+    const taskSteps = [
+        document.getElementById('taskStep1'),
+        document.getElementById('taskStep2'),
+        document.getElementById('taskStep3'),
+        document.getElementById('taskStep4')
+    ];
+    const multiStepPrevBtn = document.getElementById('multiStepPrevBtn');
+    const multiStepNextBtn = document.getElementById('multiStepNextBtn');
+    const missedTaskModal = document.getElementById('missedTaskModal');
+    const missedTaskNameEl = document.getElementById('missedTaskName');
+    const keepMissedTaskBtn = document.getElementById('keepMissedTaskBtn');
+    const deleteMissedTaskBtn = document.getElementById('deleteMissedTaskBtn');
+    // NEW DOM refs for missed task modal
+    const closeMissedTaskBtn = document.getElementById('closeMissedTaskBtn');
+    const completeMissedTaskBtn = document.getElementById('completeMissedTaskBtn');
+
+
+    // --- Data Handling ---
+    function generateId() {
+      return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : ('_' + Math.random().toString(36).substring(2, 11));
+    }
+
+    function ensureDefaultStructure(obj, defaults) {
+        for (const key in defaults) {
+            if (obj[key] === undefined || obj[key] === null) {
+                obj[key] = defaults[key];
+            }
+        }
+    }
+
+
+    function ensureDataStructure() {
+        if (!data.skills) data.skills = [];
+        if (!data.tasks) data.tasks = [];
+
+        const defaultSkill = { id: null, name: "Unnamed Skill", level: 1, exp: 0, desc: "", default: false };
+        data.skills.forEach(s => {
+            if (!s.id) s.id = generateId();
+            ensureDefaultStructure(s, defaultSkill);
+            if (!Array.isArray(s.subSkills)) {
+                s.subSkills = [];
+            }
+        });
+
+        const defaultTask = {
+            id: null, name: "Unnamed Task", reward: 0, desc: "", type: "temporary",
+            xpSkill: null, completed: false, createdAt: new Date().toISOString(),
+            notificationTime: null,
+            reminderDateTime: null,
+            lastNotifiedDate: null,
+            reminderSent: false,
+            lastCompletedDate: null,
+            completedAt: null,
+            cooldownUntil: null, // NEW PROPERTY
+        };
+        data.tasks.forEach(t => {
+            if (!t.id) t.id = generateId();
+            ensureDefaultStructure(t, defaultTask);
+        });
+
+        if (data.skills.length === 0) {
+            const firstSkill = { ...defaultSkill, id: generateId(), name: "Начальный Навык", default: true, desc: "Ваш первый навык.", subSkills: [] };
+            data.skills.push(firstSkill);
+            currentSkillIndex = 0;
+        } else {
+            const hasDefault = data.skills.some(s => s.default);
+            if (!hasDefault && data.skills.length > 0) {
+                data.skills[0].default = true;
+            }
+            currentSkillIndex = data.skills.findIndex(s => s.default);
+            if (currentSkillIndex === -1 && data.skills.length > 0) currentSkillIndex = 0;
+        }
+    }
+
+
+    function loadData() {
+        const storedData = localStorage.getItem(STORAGE_KEY);
+        if (storedData) {
+            try {
+                data = JSON.parse(storedData);
+                if (!data || typeof data !== 'object') throw new Error("Invalid data structure");
+            } catch (e) {
+                console.error("Error parsing stored data:", e);
+                alert("Ошибка загрузки данных. Возможно, данные повреждены или структура устарела. Будут загружены данные по умолчанию.");
+                data = { skills: [], tasks: [] };
+                localStorage.removeItem(STORAGE_KEY);
+            }
+        } else {
+            data = { skills: [], tasks: [] };
+        }
+        ensureDataStructure();
+        saveData();
+    }
+
+    function saveData() {
+        try {
+            if (currentSkillIndex >= 0 && data.skills[currentSkillIndex]) {
+                 localStorage.setItem('currentSkillId', data.skills[currentSkillIndex].id);
+            } else {
+                 localStorage.removeItem('currentSkillId');
+            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.error("Error saving data to localStorage:", e);
+            showNotification("Ошибка сохранения! Хранилище может быть переполнено.");
+        }
+    }
+
+    // --- Rendering Functions ---
+    function renderSkill() {
+        const skillBlock = document.getElementById("skillBlock");
+        const skillNameDisplay = document.getElementById("skillNameDisplay");
+        const skillLevelDisplay = document.getElementById("skillLevelDisplay");
+        const skillExpDisplay = document.getElementById("skillExpDisplay");
+
+        if (!skillBlock || !skillNameDisplay || !skillLevelDisplay || !skillExpDisplay) return;
+
+        if (currentSkillIndex < 0 || !data.skills || data.skills.length === 0) {
+            skillNameDisplay.innerText = "Нет навыков";
+            skillLevelDisplay.innerText = "-";
+            skillExpDisplay.innerHTML = '<p class="text-xs text-gray-500 pl-1">Добавьте навык</p>';
+            skillBlock.classList.remove("neon-purple-border", "neon-purple-bg", "border-red-500", "bg-opacity-10", "border-cyan-500");
+            skillBlock.classList.add("border-gray-600");
+            skillNameDisplay.classList.remove("neon-purple");
+             const starButton = skillBlock.querySelector('button[aria-label="Открыть поднавыки"]');
+             if (starButton) starButton.style.display = 'none';
+             localStorage.removeItem('currentSkillId');
+            return;
+        }
+
+        const skill = data.skills[currentSkillIndex];
+        if (!skill) {
+             currentSkillIndex = 0;
+             if (data.skills.length === 0) currentSkillIndex = -1;
+             else ensureDataStructure();
+             renderSkill();
+             return;
+        }
+
+        const starButton = skillBlock.querySelector('button[aria-label="Открыть поднавыки"]');
+        if (starButton) starButton.style.display = 'block';
+
+
+        skillNameDisplay.innerText = skill.name;
+        skillLevelDisplay.innerText = skill.level;
+
+        const isNeon = skill.level >= 100;
+        skillNameDisplay.classList.toggle("neon-purple", isNeon);
+        skillBlock.classList.toggle("neon-purple-border", isNeon);
+        skillBlock.classList.toggle("neon-purple-bg", isNeon);
+        skillBlock.classList.toggle("border-cyan-500", !isNeon && !skill.default);
+        skillBlock.classList.toggle("border-red-500", !isNeon && !!skill.default);
+        skillBlock.classList.toggle("bg-opacity-10", !isNeon && !!skill.default);
+
+
+        skillExpDisplay.innerHTML = "";
+        for (let i = 0; i < 5; i++) {
+            const sq = document.createElement("div");
+            sq.className = `exp-square w-5 h-5 md:w-6 md:h-6 border rounded transition-all duration-200 ${i < skill.exp ? 'filled bg-cyan-500 border-cyan-400' : 'bg-gray-800 border-cyan-700'} hover:border-yellow-400`;
+            sq.dataset.index = i;
+            sq.onclick = (e) => skillSquareClick(e, i);
+            skillExpDisplay.appendChild(sq);
+        }
+
+        localStorage.setItem('currentSkillId', skill.id);
+    }
+
+    function renderTasks() {
+        const container = document.getElementById("taskList");
+        if (!container) return;
+        container.innerHTML = "";
+
+        if (!data.tasks || data.tasks.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500 italic py-4">Нет добавленных заданий.</p>';
+            return;
+        }
+
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+
+        const sortedTasks = [...data.tasks].sort((a, b) => {
+            const aIsDone = (a.type === 'daily') ? a.lastCompletedDate === todayStr : a.completed;
+            const bIsDone = (b.type === 'daily') ? b.lastCompletedDate === todayStr : b.completed;
+            if (aIsDone !== bIsDone) return aIsDone ? 1 : -1;
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
+
+
+        const fragment = document.createDocumentFragment();
+
+        sortedTasks.forEach(task => {
+            let reminderPast = false;
+            if (task.type === 'temporary' && task.reminderDateTime && !task.completed && !task.reminderSent) {
+                 try {
+                    const reminderDate = new Date(task.reminderDateTime);
+                    if (!isNaN(reminderDate) && reminderDate < now) {
+                        reminderPast = true;
+                    }
+                 } catch (e) { console.error("Error parsing reminder date for task", task.id, e); }
+            }
+            
+            const isUnderCooldown = task.cooldownUntil && new Date() < new Date(task.cooldownUntil);
+            const isCompletedForDisplay = (task.type === 'daily') ? (task.lastCompletedDate === todayStr) : task.completed;
+            const isDone = isCompletedForDisplay || isUnderCooldown;
+
+
+            const div = document.createElement("div");
+            div.className = `task-item flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 p-3 md:p-4 rounded-lg bg-gray-900 bg-opacity-60 border ${isDone ? 'completed' : (reminderPast ? 'border-yellow-500 reminder-past' : 'border-cyan-500')} transition-all duration-300`;
+            div.dataset.id = task.id;
+
+            const infoBlock = document.createElement("div");
+            infoBlock.className = "flex-1 min-w-0 space-y-1";
+
+            const nameSpan = document.createElement("h3");
+            nameSpan.className = `task-name font-medium ${isDone ? '' : 'text-white'} responsive-text`;
+            nameSpan.innerText = task.name || "Без названия";
+            if (task.desc) nameSpan.title = task.desc;
+
+            const detailsDiv = document.createElement("div");
+            detailsDiv.className = "flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400";
+
+            const rewardNum = Number(task.reward);
+            if (!isNaN(rewardNum) && rewardNum > 0) {
+                const rewardSpan = document.createElement("span");
+                rewardSpan.innerHTML = `<i class="fas fa-star text-yellow-400 mr-1"></i> ${rewardNum} XP`;
+                detailsDiv.appendChild(rewardSpan);
+            }
+            const typeSpan = document.createElement("span");
+            typeSpan.innerHTML = `<i class="fas fa-tag mr-1"></i> ${task.type === "daily" ? "Ежед." : "Врем."}`;
+            detailsDiv.appendChild(typeSpan);
+
+            if (!isDone) {
+                if (task.type === 'daily' && task.notificationTime) {
+                    const timeSpan = document.createElement("span");
+                    timeSpan.innerHTML = `<i class="fas fa-bell mr-1"></i> ${task.notificationTime}`;
+                    detailsDiv.appendChild(timeSpan);
+                } else if (task.type === 'temporary' && task.reminderDateTime) {
+                    const timeSpan = document.createElement("span");
+                    const formattedTime = formatDateForDisplay(task.reminderDateTime);
+                    timeSpan.innerHTML = `<i class="fas fa-clock mr-1 ${reminderPast ? 'text-yellow-400' : ''}"></i> ${formattedTime || 'Invalid Date'}`;
+                    if(reminderPast && !task.reminderSent) timeSpan.title = "Напоминание пропущено!";
+                    else if (task.reminderSent) timeSpan.title = "Напоминание отправлено";
+                    else timeSpan.title = "Запланировано напоминание";
+                    detailsDiv.appendChild(timeSpan);
+                }
+            }
+
+
+            if (task.xpSkill) {
+                const skill = data.skills.find(s => s.id === task.xpSkill);
+                if (skill) {
+                    const skillSpan = document.createElement("span");
+                    skillSpan.innerHTML = `<i class="fas fa-crosshairs mr-1"></i> ${skill.name.substring(0, 15)}${skill.name.length > 15 ? '...' : ''}`;
+                    skillSpan.title = skill.name;
+                    detailsDiv.appendChild(skillSpan);
+                }
+            }
+            infoBlock.appendChild(nameSpan);
+            infoBlock.appendChild(detailsDiv);
+            div.appendChild(infoBlock);
+
+            const btnGroup = document.createElement("div");
+            btnGroup.className = "flex space-x-1.5 flex-shrink-0 self-start sm:self-center";
+
+            const completeBtn = document.createElement("button");
+            completeBtn.className = `clickable-sound p-1.5 rounded text-xs transition-colors duration-200 ${isDone ? 'bg-gray-600 text-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 text-white'} responsive-button aspect-square w-7 h-7 flex items-center justify-center`;
+            completeBtn.innerHTML = `<i class="fas fa-check"></i>`;
+            
+            if (isDone) {
+                completeBtn.disabled = true;
+                if (isUnderCooldown) {
+                    const cooldownEnd = new Date(task.cooldownUntil);
+                    completeBtn.title = `На перезарядке до ${cooldownEnd.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                } else {
+                    completeBtn.title = "Выполнено";
+                }
+            } else {
+                 completeBtn.title = "Выполнить";
+            }
+            completeBtn.onclick = () => completeTask(task.id);
+
+
+            const editBtn = document.createElement("button");
+            editBtn.className = "clickable-sound p-1.5 rounded text-xs bg-yellow-600 hover:bg-yellow-500 text-white transition-colors duration-200 responsive-button aspect-square w-7 h-7 flex items-center justify-center";
+            editBtn.innerHTML = `<i class="fas fa-pencil-alt"></i>`;
+            editBtn.title = "Редактировать";
+            editBtn.onclick = () => openTaskModal(task.id);
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "clickable-sound p-1.5 rounded text-xs bg-red-600 hover:bg-red-500 text-white transition-colors duration-200 responsive-button aspect-square w-7 h-7 flex items-center justify-center";
+            deleteBtn.innerHTML = `<i class="fas fa-times"></i>`;
+            deleteBtn.title = "Удалить";
+            deleteBtn.onclick = (e) => deleteTask(e, task.id, task.name);
+
+            btnGroup.appendChild(completeBtn);
+            btnGroup.appendChild(editBtn);
+            btnGroup.appendChild(deleteBtn);
+            div.appendChild(btnGroup);
+
+            fragment.appendChild(div);
+        });
+
+        container.appendChild(fragment);
+        attachSoundListenersToDynamicElements('#taskList .clickable-sound');
+    }
+
+    function renderAll() {
+        updateXpSkillSelect();
+        renderSkill();
+        renderTasks();
+    }
+
+     // --- Skill Management ---
+     function skillSquareClick(e, index) {
+        e.stopPropagation();
+        if (currentSkillIndex < 0) return;
+        const skill = data.skills[currentSkillIndex];
+        if (!skill) return;
+
+        playClickSound();
+        const target = e.currentTarget;
+        target.classList.add("transform", "scale-125", "border-yellow-400");
+        setTimeout(() => { target.classList.remove("transform", "scale-125", "border-yellow-400"); }, 200);
+
+        skill.exp = (index < skill.exp) ? index : (index + 1);
+        checkLevelUp(skill);
+        saveData();
+        renderSkill();
+    }
+
+    function prevSkill() {
+        playClickSound();
+        if (data.skills.length > 1) {
+            currentSkillIndex = (currentSkillIndex - 1 + data.skills.length) % data.skills.length;
+            renderSkill();
+            saveData();
+        }
+    }
+
+    function nextSkill() {
+        playClickSound();
+        if (data.skills.length > 0) {
+             currentSkillIndex = (currentSkillIndex + 1) % data.skills.length;
+             renderSkill();
+             saveData();
+        } else {
+            addNewSkill();
+        }
+    }
+
+    function addNewSkill() {
+        playClickSound();
+        const newSkill = {
+            id: generateId(),
+            name: `Новый навык ${data.skills.length + 1}`,
+            level: 1, exp: 0, desc: "", default: false,
+            subSkills: []
+        };
+        if(data.skills.length === 0) {
+            newSkill.default = true;
+        }
+        data.skills.push(newSkill);
+        currentSkillIndex = data.skills.length - 1;
+        renderSkill();
+        updateXpSkillSelect();
+        saveData();
+        showNotification("Навык добавлен!");
+        closeSidebarIfNeeded();
+    }
+
+    function openSkillsManager() {
+        playClickSound();
+        showNotification("Менеджер навыков (в разработке). Используйте звезду на карточке навыка.");
+        closeSidebarIfNeeded();
+    }
+
+    function deleteCurrentSkill() {
+        if (currentSkillIndex < 0) return;
+        if (data.skills.length <= 1) {
+            return showNotification("Нельзя удалить единственный навык.");
+        }
+
+        const skillToDelete = data.skills[currentSkillIndex];
+        if (confirm(`Вы уверены, что хотите удалить навык "${skillToDelete.name}"? Это действие необратимо.`)) {
+            data.skills.splice(currentSkillIndex, 1);
+
+            // Reassign tasks that were linked to this skill to have no skill
+            data.tasks.forEach(task => {
+                if (task.xpSkill === skillToDelete.id) {
+                    task.xpSkill = null;
+                }
+            });
+
+            // Adjust currentSkillIndex to a valid one
+            if (currentSkillIndex >= data.skills.length) {
+                currentSkillIndex = data.skills.length - 1;
+            }
+
+            // Ensure there's a default skill if the deleted one was the default
+            if (skillToDelete.default && data.skills.length > 0) {
+                const hasDefault = data.skills.some(s => s.default);
+                if (!hasDefault) {
+                    data.skills[0].default = true;
+                }
+            }
+
+            saveData();
+            closeSkillModal();
+            renderAll(); // Re-render everything
+            showNotification("Навык удален.");
+        }
+    }
+
+     function checkLevelUp(skill) {
+        if (!skill || skill.exp < 5) return false;
+        let levelsGained = 0;
+        let originalLevel = skill.level;
+        let levelUpOccurred = false;
+
+        while (skill.exp >= 5) {
+            skill.exp -= 5;
+            skill.level++;
+            levelsGained++;
+            levelUpOccurred = true;
+        }
+
+        if (levelUpOccurred) {
+            if (skill.level >= 100 && originalLevel < 100) {
+                showNotification(`🎉 LEVEL 100! ${skill.name} достиг неоновой ауры! 🎉`, null, null, true);
+            } else {
+                showNotification(`LEVEL UP! ${skill.name} -> ${skill.level} (+${levelsGained})`, null, null, true);
+            }
+        }
+        return levelUpOccurred;
+    }
+
+
+    // --- Task Management ---
+    function completeTask(id) {
+        const taskIndex = data.tasks.findIndex(t => t.id === id);
+        if (taskIndex === -1) return;
+        
+        const task = data.tasks[taskIndex];
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const isUnderCooldown = task.cooldownUntil && new Date() < new Date(task.cooldownUntil);
+        if ((task.type === 'daily' && task.lastCompletedDate === todayStr) || (task.type === 'temporary' && task.completed) || isUnderCooldown) {
+            return;
+        }
+
+        let xpAwarded = false;
+        let skillUpdated = false;
+
+        if (task.reward > 0) {
+            const xpReward = Number(task.reward) || 0;
+            const targetSkill = data.skills.find(s => s.id === task.xpSkill)
+                           || data.skills.find(s => s.default)
+                           || (currentSkillIndex >= 0 ? data.skills[currentSkillIndex] : null)
+                           || (data.skills.length > 0 ? data.skills[0] : null);
+
+            if (targetSkill) {
+                targetSkill.exp += xpReward;
+                if (checkLevelUp(targetSkill)) {
+                    skillUpdated = true;
+                }
+                showNotification(`+${xpReward} XP для '${targetSkill.name}'!`);
+                xpAwarded = true;
+                if (currentSkillIndex >= 0 && targetSkill.id === data.skills[currentSkillIndex].id) {
+                    skillUpdated = true;
+                }
+            } else {
+                showNotification(`Награда ${xpReward} XP не начислена: навык не найден.`);
+            }
+        }
+        
+        if (task.type === 'daily') {
+            task.lastCompletedDate = todayStr;
+            task.cooldownUntil = null; // Reset cooldown if it exists
+            if (!xpAwarded) showNotification(`Ежедневное задание "${task.name || 'Без названия'}" выполнено на сегодня!`);
+        } else {
+            task.completed = true;
+            task.completedAt = new Date().toISOString();
+            if (!xpAwarded) showNotification(`Задание "${task.name || 'Без названия'}" выполнено!`);
+        }
+
+        saveData();
+        renderTasks();
+        if (skillUpdated) {
+            renderSkill();
+        }
+    }
+
+
+    function deleteTask(event, id, name) {
+        event.stopPropagation();
+        if(confirm(`Удалить задание "${name || 'Без названия'}"?`)) {
+            data.tasks = data.tasks.filter(t => t.id !== id);
+            saveData();
+            renderTasks();
+            showNotification("Задание удалено!");
+        }
+    }
+
+    function cleanupOldTasks() {
+        const now = new Date();
+        const twentyFourHoursAgo = now.getTime() - (24 * 60 * 60 * 1000);
+        const originalLength = data.tasks.length;
+
+        const tasksToKeep = data.tasks.filter(task => {
+            if (task.type !== 'temporary') {
+                return true;
+            }
+
+            if (task.completed) {
+                const completedTime = new Date(task.completedAt).getTime();
+                return completedTime > twentyFourHoursAgo;
+            } else {
+                if (task.reminderDateTime) {
+                    const reminderTime = new Date(task.reminderDateTime).getTime();
+                    return reminderTime >= now.getTime();
+                }
+                return true;
+            }
+        });
+        
+        if (tasksToKeep.length < originalLength) {
+            data.tasks = tasksToKeep;
+            saveData();
+            renderTasks();
+            console.log(`Cleaned up ${originalLength - data.tasks.length} old/expired task(s).`);
+        }
+    }
+
+
+    function toggleTaskTimeInputs(selectedType, context = 'new') {
+        const dailyDiv = context === 'modal' ? modalTaskDailyTimeDiv : document.getElementById('multiStepDailyTimeContainer');
+        const tempDiv = context === 'modal' ? modalTaskTempReminderDiv : document.getElementById('multiStepTempReminderContainer');
+        const dailyInput = dailyDiv.querySelector('input');
+        const tempInput = tempDiv.querySelector('input');
+
+        if (selectedType === 'daily') {
+            dailyDiv.classList.remove('hidden-input');
+            tempDiv.classList.add('hidden-input');
+            if (tempInput) tempInput.value = '';
+        } else if (selectedType === 'temporary') {
+            dailyDiv.classList.add('hidden-input');
+            tempDiv.classList.remove('hidden-input');
+             if (dailyInput) dailyInput.value = '';
+        } else {
+            dailyDiv.classList.add('hidden-input');
+            tempDiv.classList.add('hidden-input');
+             if (dailyInput) dailyInput.value = '';
+             if (tempInput) tempInput.value = '';
+        }
+    }
+
+    // --- Modal Management ---
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = "flex";
+            const firstInput = modal.querySelector('input:not([type="hidden"]), textarea, select, button.responsive-button');
+            if (firstInput) setTimeout(() => firstInput.focus(), 50);
+        }
+    }
+
+    function closeModal(modalId) {
+         const modal = document.getElementById(modalId);
+         if (modal) modal.style.display = "none";
+    }
+
+    function openSkillModal() {
+        if (currentSkillIndex < 0) return showNotification("Сначала добавьте навык.");
+        const skill = data.skills[currentSkillIndex];
+        if (!skill) return;
+
+        const modal = document.getElementById("skillModalOverlay");
+        modal.querySelector("#modalSkillNameInput").value = skill.name;
+        modal.querySelector("#modalSkillLevelInput").value = skill.level;
+        modal.querySelector("#modalSkillExpInput").value = skill.exp;
+        modal.querySelector("#modalSkillDescInput").value = skill.desc || "";
+        openModal("skillModalOverlay");
+    }
+    function closeSkillModal() { closeModal("skillModalOverlay"); }
+
+    function saveSkillModal() {
+        if (currentSkillIndex < 0) return;
+        const modal = document.getElementById("skillModalOverlay");
+        const nameInput = modal.querySelector("#modalSkillNameInput");
+        const levelInput = modal.querySelector("#modalSkillLevelInput");
+        const expInput = modal.querySelector("#modalSkillExpInput");
+        const descInput = modal.querySelector("#modalSkillDescInput");
+
+        const name = nameInput.value.trim();
+        const level = parseInt(levelInput.value);
+        const exp = parseInt(expInput.value);
+        const desc = descInput.value.trim();
+
+        if (!name) return showNotification("Название навыка не может быть пустым.", nameInput);
+        if (isNaN(level) || level < 1) return showNotification("Уровень должен быть числом ≥ 1.", levelInput);
+        if (isNaN(exp) || exp < 0 || exp > 5) return showNotification("Опыт должен быть числом от 0 до 5.", expInput);
+
+        const skill = data.skills[currentSkillIndex];
+        if (!skill) return;
+        skill.name = name; skill.level = level; skill.exp = exp; skill.desc = desc;
+
+        saveData();
+        closeSkillModal();
+        renderSkill();
+        updateXpSkillSelect();
+        renderTasks();
+        showNotification("Навык сохранён!");
+    }
+
+     function openTaskModal(id) {
+        currentTaskId = id;
+        const task = data.tasks.find(t => t.id === id);
+        if (!task) return;
+        const modal = document.getElementById("taskModalOverlay");
+        modal.querySelector("#modalTaskNameInput").value = task.name;
+        modal.querySelector("#modalTaskRewardInput").value = task.reward;
+        modal.querySelector("#modalTaskDescInput").value = task.desc || "";
+        modal.querySelector("#modalTaskTypeSelect").value = task.type;
+        const taskXpSelect = modal.querySelector("#modalTaskXpSkillSelect");
+        populateSkillSelect(taskXpSelect);
+        taskXpSelect.value = task.xpSkill || "";
+
+        const dailyTimeInput = modal.querySelector("#modalTaskDailyTimeInput");
+        const tempReminderInput = modal.querySelector("#modalTaskTempReminderInput");
+        dailyTimeInput.value = task.notificationTime || "";
+        if (task.reminderDateTime) {
+            try {
+                 const dt = new Date(task.reminderDateTime);
+                 if (isNaN(dt)) throw new Error("Invalid date stored");
+                 const tzoffset = dt.getTimezoneOffset() * 60000;
+                 const localISOTime = (new Date(dt.getTime() - tzoffset)).toISOString().slice(0, 16);
+                 tempReminderInput.value = localISOTime;
+            } catch(e) {
+                tempReminderInput.value = "";
+            }
+        } else {
+            tempReminderInput.value = "";
+        }
+        toggleTaskTimeInputs(task.type, 'modal');
+        openModal("taskModalOverlay");
+    }
+    function closeTaskModal() { closeModal("taskModalOverlay"); currentTaskId = null; }
+
+    function saveTaskModal() {
+        if (!currentTaskId) return;
+        const taskIndex = data.tasks.findIndex(t => t.id === currentTaskId);
+        if (taskIndex === -1) return;
+        const task = data.tasks[taskIndex];
+
+        const name = document.getElementById("modalTaskNameInput").value.trim();
+        const rewardStr = document.getElementById("modalTaskRewardInput").value.trim();
+        const desc = document.getElementById("modalTaskDescInput").value.trim();
+        const type = document.getElementById("modalTaskTypeSelect").value;
+        const xpSkill = document.getElementById("modalTaskXpSkillSelect").value;
+
+        if (!name) return showNotification("Введите название задания.", document.getElementById("modalTaskNameInput"));
+
+        let reward = 0;
+        if (rewardStr) {
+            reward = Number(rewardStr);
+            if (isNaN(reward) || reward < 0 || !Number.isInteger(reward)) {
+                 return showNotification("Награда должна быть целым неотрицательным числом.", document.getElementById("modalTaskRewardInput"));
+            }
+        }
+
+        task.name = name;
+        task.reward = reward;
+        task.desc = desc;
+        task.xpSkill = xpSkill || null;
+        
+        if (task.type !== type) {
+            task.type = type;
+            task.completed = false;
+            task.completedAt = null;
+            task.lastCompletedDate = null;
+            task.notificationTime = null;
+            task.reminderDateTime = null;
+        }
+
+        if (type === 'daily') {
+            task.notificationTime = document.getElementById("modalTaskDailyTimeInput").value || null;
+        } else {
+            const reminderValue = document.getElementById("modalTaskTempReminderInput").value;
+            task.reminderDateTime = reminderValue ? new Date(reminderValue).toISOString() : null;
+        }
+
+        saveData();
+        closeTaskModal();
+        renderTasks();
+        showNotification("Задание обновлено!");
+    }
+
+    // --- Multi-Step Task Creation Logic ---
+    function openMultiStepTaskModal() {
+        newTaskData = {};
+        currentTaskCreationStep = 1;
+        
+        document.getElementById('multiStepTaskName').value = '';
+        document.getElementById('multiStepTaskDesc').value = '';
+        document.getElementById('multiStepTaskType').value = 'temporary';
+        document.getElementById('multiStepTaskReward').value = '';
+        document.getElementById('multiStepTaskXpSkill').value = '';
+        document.getElementById('multiStepDailyTimeInput').value = '';
+        document.getElementById('multiStepTempReminderInput').value = '';
+        
+        populateSkillSelect(document.getElementById('multiStepTaskXpSkill'));
+        navigateToStep(1);
+        openModal('multiStepTaskModal');
+    }
+
+    function closeMultiStepTaskModal() { closeModal('multiStepTaskModal'); }
+
+    function navigateToStep(stepNumber) {
+        currentTaskCreationStep = stepNumber;
+
+        taskSteps.forEach((step, index) => {
+            step.classList.toggle('active-step', index + 1 === stepNumber);
+        });
+
+        modalStepIndicator.textContent = `Шаг ${stepNumber} из 4`;
+
+        multiStepPrevBtn.style.display = (stepNumber === 1) ? 'none' : 'inline-block';
+        
+        if (stepNumber === 4) {
+            multiStepNextBtn.textContent = 'Создать';
+            populateTaskReview();
+        } else {
+            multiStepNextBtn.textContent = 'Далее';
+        }
+
+        if (stepNumber === 3) {
+            const currentType = document.getElementById('multiStepTaskType').value;
+            toggleTaskTimeInputs(currentType, 'new');
+        }
+    }
+
+    function handleNextStep() {
+        if (!validateStep(currentTaskCreationStep)) return;
+        saveStepData(currentTaskCreationStep);
+        
+        if (currentTaskCreationStep < 4) {
+            navigateToStep(currentTaskCreationStep + 1);
+        } else {
+            createTaskFromModal();
+        }
+    }
+
+    function handlePrevStep() {
+        if (currentTaskCreationStep > 1) {
+            navigateToStep(currentTaskCreationStep - 1);
+        }
+    }
+
+    function validateStep(stepNumber) {
+        if (stepNumber === 1) {
+            const nameInput = document.getElementById('multiStepTaskName');
+            if (!nameInput.value.trim()) {
+                showNotification("Введите название задания.", nameInput);
+                return false;
+            }
+        }
+        if (stepNumber === 2) {
+            const rewardInput = document.getElementById('multiStepTaskReward');
+            const rewardStr = rewardInput.value.trim();
+            if (rewardStr) {
+                const reward = Number(rewardStr);
+                if (isNaN(reward) || reward < 0 || !Number.isInteger(reward)) {
+                    showNotification("Награда должна быть целым неотрицательным числом.", rewardInput);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    function saveStepData(stepNumber) {
+        if (stepNumber === 1) {
+            newTaskData.name = document.getElementById('multiStepTaskName').value.trim();
+            newTaskData.desc = document.getElementById('multiStepTaskDesc').value.trim();
+        } else if (stepNumber === 2) {
+            newTaskData.type = document.getElementById('multiStepTaskType').value;
+            const rewardStr = document.getElementById('multiStepTaskReward').value.trim();
+            newTaskData.reward = rewardStr ? Number(rewardStr) : 0;
+            newTaskData.xpSkill = document.getElementById('multiStepTaskXpSkill').value || null;
+        } else if (stepNumber === 3) {
+            const type = document.getElementById('multiStepTaskType').value;
+            if (type === 'daily') {
+                newTaskData.notificationTime = document.getElementById('multiStepDailyTimeInput').value || null;
+                newTaskData.reminderDateTime = null;
+            } else {
+                const reminderValue = document.getElementById('multiStepTempReminderInput').value;
+                newTaskData.reminderDateTime = reminderValue ? new Date(reminderValue).toISOString() : null;
+                newTaskData.notificationTime = null;
+            }
+        }
+    }
+    
+    function populateTaskReview() {
+        const reviewContainer = document.getElementById('taskReviewContent');
+        const skillName = newTaskData.xpSkill ? (data.skills.find(s => s.id === newTaskData.xpSkill)?.name || 'Не найден') : 'Нет';
+        let timeInfo = '<p><strong>Время:</strong> <span>Не указано</span></p>';
+        if (newTaskData.type === 'daily' && newTaskData.notificationTime) {
+            timeInfo = `<p><strong>Уведомление (ежедн.):</strong> <span>${newTaskData.notificationTime}</span></p>`;
+        } else if (newTaskData.type === 'temporary' && newTaskData.reminderDateTime) {
+            timeInfo = `<p><strong>Напоминание:</strong> <span>${formatDateForDisplay(newTaskData.reminderDateTime) || 'Некорректная дата'}</span></p>`;
+        }
+
+        reviewContainer.innerHTML = `
+            <p><strong>Название:</strong> <span class="text-white">${newTaskData.name}</span></p>
+            <p><strong>Описание:</strong> <span class="text-gray-400 italic">${newTaskData.desc || 'Нет'}</span></p>
+            <p><strong>Тип:</strong> <span>${newTaskData.type === 'daily' ? 'Ежедневное' : 'Временное'}</span></p>
+            <p><strong>Награда:</strong> <span>${newTaskData.reward} XP</span></p>
+            <p><strong>Навык для XP:</strong> <span>${skillName}</span></p>
+            ${timeInfo}
+        `;
+    }
+
+    function createTaskFromModal() {
+        const task = {
+            id: generateId(),
+            name: newTaskData.name,
+            reward: newTaskData.reward,
+            desc: newTaskData.desc,
+            type: newTaskData.type,
+            xpSkill: newTaskData.xpSkill,
+            completed: false,
+            createdAt: new Date().toISOString(),
+            notificationTime: newTaskData.notificationTime || null,
+            reminderDateTime: newTaskData.reminderDateTime || null,
+            lastNotifiedDate: null,
+            reminderSent: false,
+            lastCompletedDate: null,
+            completedAt: null,
+            cooldownUntil: null,
+        };
+        data.tasks.push(task);
+        saveData();
+        renderTasks();
+        closeMultiStepTaskModal();
+        showNotification("Задание успешно создано!");
+    }
+    
+    // --- Missed Daily Task Logic ---
+    function checkMissedDailyTasks() {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        
+        const todayStr = today.toISOString().split('T')[0];
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        const missedTasks = data.tasks.filter(t => {
+            if (t.type !== 'daily') return false;
+
+            // NEW: Check if task is on cooldown
+            if (t.cooldownUntil && new Date() < new Date(t.cooldownUntil)) {
+                return false;
+            }
+            
+            const creationDate = new Date(t.createdAt).toISOString().split('T')[0];
+            if (creationDate === todayStr) return false;
+
+            if (t.lastCompletedDate === todayStr || t.lastCompletedDate === yesterdayStr) {
+                return false;
+            }
+            
+            return true;
+        });
+
+        if (missedTasks.length > 0) {
+            missedTaskQueue = [...missedTasks];
+            processMissedTaskQueue();
+        }
+    }
+
+    function processMissedTaskQueue() {
+        if (missedTaskQueue.length === 0) {
+            closeModal('missedTaskModal');
+            return;
+        }
+
+        const taskToShow = missedTaskQueue[0];
+        missedTaskNameEl.textContent = taskToShow.name;
+        missedTaskModal.dataset.taskId = taskToShow.id;
+        openModal('missedTaskModal');
+    }
+
+    function handleKeepMissedTask() {
+        missedTaskQueue.shift();
+        setTimeout(processMissedTaskQueue, 300);
+    }
+
+    function handleDeleteMissedTask() {
+        const taskId = missedTaskModal.dataset.taskId;
+        if (taskId) {
+            data.tasks = data.tasks.filter(t => t.id !== taskId);
+            saveData();
+            renderTasks();
+            showNotification("Пропущенное задание удалено.");
+        }
+        missedTaskQueue.shift();
+        setTimeout(processMissedTaskQueue, 300);
+    }
+    
+    function handleCompleteMissedTask() {
+        const taskId = missedTaskModal.dataset.taskId;
+        if (!taskId) return;
+
+        // Mark as complete (awards XP, sets lastCompletedDate)
+        completeTask(taskId);
+
+        // Find the task and set the 13-hour cooldown
+        const task = data.tasks.find(t => t.id === taskId);
+        if (task) {
+            task.cooldownUntil = new Date(Date.now() + 13 * 60 * 60 * 1000).toISOString();
+            showNotification(`Задание "${task.name}" выполнено. Перезарядка 13 часов.`);
+        }
+
+        saveData(); // Save after setting cooldown
+        renderTasks(); // Re-render to show updated state
+
+        // Move to next in queue
+        missedTaskQueue.shift();
+        setTimeout(processMissedTaskQueue, 300);
+    }
+    
+    function handleCloseMissedTaskModal() {
+        missedTaskQueue = []; // Empty the queue to stop all notifications
+        closeModal('missedTaskModal');
+    }
+
+
+    // --- Data Import/Export ---
+    function openJsonInputModal() {
+        const modal = document.getElementById("jsonInputModal");
+        modal.querySelector("#jsonDataInput").value = JSON.stringify(data, null, 2);
+        openModal("jsonInputModal");
+    }
+    function closeJsonInputModal() { closeModal("jsonInputModal"); }
+
+    function importJsonData() {
+        const jsonStr = document.getElementById("jsonDataInput").value.trim();
+        if (!jsonStr) return showNotification("Введите JSON данные.");
+        try {
+            const parsedData = JSON.parse(jsonStr);
+             if (!parsedData || typeof parsedData !== 'object' || !Array.isArray(parsedData.skills) || !Array.isArray(parsedData.tasks)) {
+                 throw new Error("Неверный формат JSON. Ожидался объект с полями 'skills' и 'tasks'.");
+             }
+            data = parsedData;
+            ensureDataStructure();
+            saveData();
+            renderAll();
+            closeJsonInputModal();
+            showNotification("Данные импортированы!");
+        } catch (error) {
+            console.error("JSON Import Error:", error);
+            showNotification(`Ошибка импорта: ${error.message}`);
+        }
+    }
+
+    function copyDataAsJSON() {
+        const jsonStr = JSON.stringify(data, null, 2);
+        navigator.clipboard.writeText(jsonStr)
+            .then(() => showNotification("JSON скопирован!"))
+            .catch((err) => showNotification("Ошибка копирования JSON!"));
+        closeSidebarIfNeeded();
+    }
+
+    function downloadDataAsJSON() {
+        const jsonStr = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `levelUpData_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showNotification("Данные скачаны!");
+        closeSidebarIfNeeded();
+    }
+
+     function uploadDataFromJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const uploadedData = JSON.parse(e.target.result);
+                 if (!uploadedData || typeof uploadedData !== 'object' || !Array.isArray(uploadedData.skills) || !Array.isArray(uploadedData.tasks)) {
+                     throw new Error("Неверный формат файла JSON. Ожидался объект с полями 'skills' и 'tasks'.");
+                 }
+                data = uploadedData;
+                ensureDataStructure();
+                saveData();
+                renderAll();
+                showNotification("Данные успешно загружены!");
+            } catch (error) {
+                 console.error("JSON Upload Error:", error);
+                 showNotification(`Ошибка загрузки файла: ${error.message}`);
+            } finally {
+                event.target.value = null;
+            }
+        };
+        reader.onerror = () => showNotification("Ошибка чтения файла.");
+        reader.readAsText(file);
+        closeSidebarIfNeeded();
+    }
+    
+    // --- Timer Logic ---
+    let timerInterval = null;
+    let timerRemainingSeconds = 0;
+    let isTimerRunning = false;
+
+     function startTimer() {
+        if (isTimerRunning) return;
+
+        if (timerRemainingSeconds <= 0) {
+             const hours = parseInt(document.getElementById("hoursInput").value) || 0;
+             const minutes = parseInt(document.getElementById("minutesInput").value) || 0;
+             const seconds = parseInt(document.getElementById("secondsInput").value) || 0;
+             if (hours < 0 || minutes < 0 || seconds < 0 || minutes >= 60 || seconds >= 60) {
+                 return showNotification("Некорректное время.", document.getElementById("minutesInput"));
+             }
+             timerRemainingSeconds = hours * 3600 + minutes * 60 + seconds;
+        }
+        if (timerRemainingSeconds <= 0) return showNotification("Установите время!");
+        isTimerRunning = true;
+        toggleTimerInputs(false);
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(updateTimer, 1000);
+        updateTimerDisplay();
+    }
+
+    function updateTimer() {
+        if (!isTimerRunning || timerRemainingSeconds <= 0) {
+             clearInterval(timerInterval);
+             timerInterval = null;
+             isTimerRunning = false;
+             toggleTimerInputs(true);
+             if (timerRemainingSeconds <= 0) {
+                 showNotification("⏰ Время таймера истекло! ⏰", null, null, true);
+                 timerRemainingSeconds = 0;
+                 updateTimerDisplay();
+             }
+             return;
+        }
+        timerRemainingSeconds--;
+        updateTimerDisplay();
+    }
+
+    function pauseTimer() {
+        if (!isTimerRunning) return;
+        isTimerRunning = false;
+        clearInterval(timerInterval);
+        timerInterval = null;
+        toggleTimerInputs(true);
+    }
+
+    function resetTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        isTimerRunning = false;
+        timerRemainingSeconds = 0;
+        updateTimerDisplay();
+        document.getElementById("hoursInput").value = "0";
+        document.getElementById("minutesInput").value = "0";
+        document.getElementById("secondsInput").value = "0";
+        toggleTimerInputs(true);
+    }
+
+    function updateTimerDisplay() {
+        const hours = Math.floor(timerRemainingSeconds / 3600);
+        const minutes = Math.floor((timerRemainingSeconds % 3600) / 60);
+        const seconds = timerRemainingSeconds % 60;
+        document.getElementById("timerDisplay").innerText = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+     function toggleTimerInputs(enabled) {
+         document.getElementById("hoursInput").disabled = !enabled;
+         document.getElementById("minutesInput").disabled = !enabled;
+         document.getElementById("secondsInput").disabled = !enabled;
+    }
+    
+    // --- Notifications & Utilities ---
+    function checkNotifications() {
+        const now = new Date();
+        const currentTimeHM = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const currentDateYYYYMMDD = now.toISOString().split('T')[0];
+        let dataChanged = false;
+        let needRender = false;
+
+        data.tasks.forEach(task => {
+            const isCompletedToday = (task.type === 'daily' && task.lastCompletedDate === currentDateYYYYMMDD) || (task.type === 'temporary' && task.completed);
+            if (isCompletedToday) return;
+
+            if (task.type === 'daily' && task.notificationTime) {
+                 // NEW: Check for cooldown before sending notification
+                 if (task.cooldownUntil && now < new Date(task.cooldownUntil)) {
+                     return;
+                 }
+                 if (task.notificationTime === currentTimeHM && task.lastNotifiedDate !== currentDateYYYYMMDD) {
+                    showNotification(`🔔 Ежедневное задание: "${task.name || 'Без названия'}"!`, null, null, true);
+                    task.lastNotifiedDate = currentDateYYYYMMDD;
+                    dataChanged = true;
+                 }
+            }
+            else if (task.type === 'temporary' && task.reminderDateTime && !task.reminderSent) {
+                try {
+                    const reminderDate = new Date(task.reminderDateTime);
+                    if (!isNaN(reminderDate) && reminderDate <= now) {
+                        showNotification(`⏰ Напоминание: "${task.name || 'Без названия'}"!`, null, null, true);
+                        task.reminderSent = true;
+                        dataChanged = true;
+                        needRender = true;
+                    }
+                } catch (e) { console.error("Error checking reminder date", e); }
+            }
+        });
+
+        if (dataChanged) {
+            saveData();
+            if (needRender) renderTasks();
+        }
+    }
+
+    function scheduleBackgroundTasks() {
+        if (notificationCheckInterval) clearInterval(notificationCheckInterval);
+        if (cleanupInterval) clearInterval(cleanupInterval);
+
+        setTimeout(checkNotifications, 1000);
+        notificationCheckInterval = setInterval(checkNotifications, 60000);
+
+        setTimeout(cleanupOldTasks, 5000);
+        cleanupInterval = setInterval(cleanupOldTasks, 3600000);
+    }
+
+    function populateSkillSelect(selectElement) {
+        if (!selectElement) return;
+        const currentVal = selectElement.value;
+        selectElement.innerHTML = "";
+        const defaultOption = document.createElement("option");
+        defaultOption.value = ""; defaultOption.innerText = "-- Без навыка --";
+        selectElement.appendChild(defaultOption);
+        data.skills.forEach(skill => {
+            const option = document.createElement("option");
+            option.value = skill.id; option.innerText = skill.name;
+            selectElement.appendChild(option);
+        });
+        selectElement.value = currentVal;
+    }
+
+    function updateXpSkillSelect() {
+        populateSkillSelect(document.getElementById("modalTaskXpSkillSelect"));
+        populateSkillSelect(document.getElementById("multiStepTaskXpSkill"));
+    }
+
+    function showNotification(message, highlightElement = null, highlightClass = 'border-red-500', playSound = false) {
+        if (!notificationElement) return;
+        
+        if (playSound) {
+            playNotificationSound();
+        }
+        
+        notificationElement.innerHTML = message;
+        notificationElement.classList.add('show');
+
+        if (notificationElement.timeoutId) clearTimeout(notificationElement.timeoutId);
+
+        notificationElement.timeoutId = setTimeout(() => {
+            notificationElement.classList.remove('show');
+            notificationElement.timeoutId = null;
+        }, 4000);
+
+        if (highlightElement) highlightField(highlightElement, highlightClass);
+    }
+
+    function highlightField(fieldElement, highlightClass = 'border-red-500') {
+        if (!fieldElement) return;
+        fieldElement.classList.add("border-2", highlightClass, "animate-pulse");
+        setTimeout(() => {
+            fieldElement.classList.remove("border-2", highlightClass, "animate-pulse");
+        }, 2500);
+    }
+
+    function formatDateForDisplay(isoDateTimeString) {
+        if (!isoDateTimeString) return null;
+        try {
+            const date = new Date(isoDateTimeString);
+            if (isNaN(date)) return null;
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${day}.${month}.${year} ${hours}:${minutes}`;
+        } catch (e) {
+            console.error("Error formatting date:", isoDateTimeString, e);
+            return null;
+        }
+    }
+
+    function toggleSidebar() {
+        isSidebarOpen = !isSidebarOpen;
+        sidebarElement.classList.toggle('open', isSidebarOpen);
+        sidebarOverlay.classList.toggle('active', isSidebarOpen);
+        if (window.innerWidth < 768) {
+            bodyElement.classList.toggle('body-no-scroll', isSidebarOpen);
+        }
+    }
+    function closeSidebarIfNeeded() {
+        if (isSidebarOpen && window.innerWidth < 768) {
+            toggleSidebar();
+        }
+    }
+
+    // --- Settings Application ---
+    function applySettings() {
+        const SETTINGS_KEY = 'app_settings';
+        const defaults = {
+            showVideoBackground: true,
+            showSkillStar: true
+        };
+        let settings = defaults;
+
+        const savedSettings = localStorage.getItem(SETTINGS_KEY);
+        if (savedSettings) {
+            try {
+                settings = { ...defaults, ...JSON.parse(savedSettings) };
+            } catch (e) {
+                console.error("Could not parse settings, using defaults.", e);
+            }
+        }
+
+        // Apply "Show Skill Star" setting
+        const skillStarLink = document.getElementById('skillStarLink');
+        if (skillStarLink) {
+            skillStarLink.classList.toggle('visible', settings.showSkillStar);
+        }
+
+        // Apply "Show Video Background" setting
+        const videoBackground = document.getElementById('video-background');
+        if (videoBackground) {
+            videoBackground.style.display = settings.showVideoBackground ? 'block' : 'none';
+        }
+    }
+
+    // --- DOMContentLoaded ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // Cache DOM elements
+        const sidebarToggleBtn = document.getElementById('sidebarToggle');
+        const downloadBtn = document.getElementById("downloadJsonBtn");
+        const uploadBtn = document.getElementById("uploadJsonBtn");
+        const fileInput = document.getElementById("jsonFileInput");
+        const regBtn = document.getElementById('regBtn');
+        const userInfoDisplay = document.getElementById('userInfo');
+        const openMultiStepTaskBtn = document.getElementById('openMultiStepTaskBtn');
+
+        // Load and process data
+        loadData();
+        applySettings();
+        
+        // Initial checks
+        checkMissedDailyTasks();
+
+        const userData = JSON.parse(localStorage.getItem('userData') || 'null');
+        if(userData && userData.username) {
+            if(regBtn) {
+                regBtn.innerHTML = `<i class="fas fa-user-circle mr-2"></i> <span>${userData.username}</span>`;
+                regBtn.href = 'profile.html';
+            }
+            if(userInfoDisplay) userInfoDisplay.textContent = userData.username;
+        } else {
+            if(userInfoDisplay) userInfoDisplay.textContent = "Гость";
+        }
+
+        // Attach event listeners
+        if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
+        if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+        if (downloadBtn) downloadBtn.addEventListener('click', downloadDataAsJSON);
+        if (uploadBtn) uploadBtn.addEventListener('click', () => fileInput?.click());
+        if (fileInput) fileInput.addEventListener('change', uploadDataFromJSON);
+        if (modalTaskTypeSelect) {
+            modalTaskTypeSelect.addEventListener('change', (e) => toggleTaskTimeInputs(e.target.value, 'modal'));
+        }
+
+        if (openMultiStepTaskBtn) openMultiStepTaskBtn.addEventListener('click', openMultiStepTaskModal);
+        if (multiStepPrevBtn) multiStepPrevBtn.addEventListener('click', handlePrevStep);
+        if (multiStepNextBtn) multiStepNextBtn.addEventListener('click', handleNextStep);
+        if (multiStepTaskModal) multiStepTaskModal.addEventListener('click', (e) => {
+            if (e.target === multiStepTaskModal) closeMultiStepTaskModal();
+        });
+
+        // NEW Event Listeners for the modified missed task modal
+        if(closeMissedTaskBtn) closeMissedTaskBtn.addEventListener('click', handleCloseMissedTaskModal);
+        if(completeMissedTaskBtn) completeMissedTaskBtn.addEventListener('click', handleCompleteMissedTask);
+        if(keepMissedTaskBtn) keepMissedTaskBtn.addEventListener('click', handleKeepMissedTask);
+        if(deleteMissedTaskBtn) deleteMissedTaskBtn.addEventListener('click', handleDeleteMissedTask);
+
+
+        // Re-apply settings on focus to catch changes from other tabs
+        window.addEventListener('focus', applySettings);
+
+        renderAll();
+        scheduleBackgroundTasks();
+    });
+
+</script>
+</body>
+</html>

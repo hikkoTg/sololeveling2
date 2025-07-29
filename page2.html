@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Развитие интеллекта</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-dark: #0f172a;
+            --neon-shadow: 0 0 10px #00f2ff, 0 0 20px rgba(0, 242, 255, 0.5);
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+            background: var(--neon-dark);
+            color: #f8fafc;
+        }
+        
+        body.light-mode {
+            background: #ffffff;
+            color: #1e293b;
+        }
+        
+        body.dark-mode {
+            background: var(--neon-dark);
+            color: #f8fafc;
+        }
+        
+        .card {
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            margin-bottom: 1.5rem;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .light-mode .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: var(--neon-shadow);
+            border: 1px solid var(--neon-blue);
+        }
+        
+        .light-mode .card:hover {
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .btn-primary, .btn-secondary {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 280px;
+            margin: 0 auto;
+            display: block;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+        }
+        
+        .light-mode .btn-primary {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--neon-shadow);
+            background: rgba(0, 242, 255, 0.2);
+        }
+        
+        .light-mode .btn-primary:hover {
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .light-mode .btn-secondary {
+            background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 10px #ff9a9e, 0 0 20px rgba(255, 154, 158, 0.5);
+            background: rgba(255, 154, 158, 0.2);
+        }
+        
+        .light-mode .btn-secondary:hover {
+            box-shadow: 0 10px 20px rgba(255, 154, 158, 0.4);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .floating {
+            animation: floating 6s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+        
+        .theme-switch {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 100;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 25px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--neon-blue);
+            transition: .4s;
+            border-radius: 25px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #ccc;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        
+        .dark-mode .text-gray-800 {
+            color: #f8fafc;
+        }
+        
+        .dark-mode .text-gray-600 {
+            color: #cbd5e1;
+        }
+        
+        .dark-mode .bg-white {
+            background-color: rgba(15, 23, 42, 0.8);
+        }
+        
+        .dark-mode .bg-indigo-50 {
+            background-color: rgba(0, 242, 255, 0.05);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
+        
+        .dark-mode .text-indigo-200 {
+            color: var(--neon-blue);
+        }
+        
+        .header-title {
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+        
+        .light-mode .header-title {
+            color: #1e293b;
+            text-shadow: none;
+        }
+        
+        .feature-card {
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
+        
+        .light-mode .feature-card {
+            border: 1px solid #e2e8f0;
+        }
+        
+        #video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -1;
+            object-fit: cover;
+            filter: brightness(0.5);
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            .header-title {
+                font-size: 2rem;
+                margin-top: 3rem;
+            }
+            
+            .header-subtitle {
+                font-size: 1rem;
+                padding: 0 1rem;
+            }
+            
+            .card {
+                padding: 1.5rem;
+                margin-bottom: 1rem;
+            }
+            
+            .feature-card {
+                padding: 1.25rem;
+                margin-bottom: 1rem;
+            }
+            
+            .features-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-primary, .btn-secondary {
+                padding: 0.75rem;
+                font-size: 0.9rem;
+            }
+            
+            .switch {
+                width: 40px;
+                height: 20px;
+            }
+            
+            .slider:before {
+                height: 14px;
+                width: 14px;
+            }
+            
+            input:checked + .slider:before {
+                transform: translateX(20px);
+            }
+        }
+        
+        /* Hamburger menu for mobile */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: var(--neon-dark);
+            z-index: 90;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .light-mode .mobile-menu {
+            background: white;
+        }
+        
+        .mobile-menu.active {
+            display: block;
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 100;
+            background: rgba(0, 242, 255, 0.2);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .light-mode .mobile-menu-btn {
+            background: #e2e8f0;
+            color: #1e293b;
+            border: none;
+        }
+        
+        @media (max-width: 640px) {
+            .mobile-menu-btn {
+                display: flex;
+            }
+        }
+    </style>
+    <script src="sounds.js" defer></script>
+</head>
+<body class="dark-mode flex flex-col items-center justify-start p-4">
+    <video autoplay loop muted playsinline id="video-background" style="display: none;">
+        <source src="background.mp4" type="video/mp4">
+    </video>
+
+    <!-- Mobile Menu Button -->
+    <div class="mobile-menu-btn clickable-sound" id="mobileMenuBtn">
+        <i class="fas fa-bars"></i>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="flex flex-col space-y-4">
+            <a href="#" class="text-neon-blue dark:text-white py-2 px-4 rounded clickable-sound">Главная</a>
+            <a href="#" class="text-gray-600 dark:text-gray-300 py-2 px-4 rounded clickable-sound">Тренировки</a>
+            <a href="#" class="text-gray-600 dark:text-gray-300 py-2 px-4 rounded clickable-sound">Прогресс</a>
+            <a href="#" class="text-gray-600 dark:text-gray-300 py-2 px-4 rounded clickable-sound">Настройки</a>
+        </div>
+    </div>
+    
+    <!-- Theme Switch -->
+    <div class="theme-switch">
+        <label class="switch">
+            <input type="checkbox" id="theme-toggle" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+    
+    <div class="w-full max-w-4xl px-4 mt-12 sm:mt-0">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl sm:text-5xl font-bold mb-4 header-title">Развитие интеллекта</h1>
+            <p class="text-base sm:text-xl text-gray-300 header-subtitle">Тренируйте свои когнитивные способности и достигайте новых высот</p>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="flex flex-col sm:grid sm:grid-cols-2 gap-4 sm:gap-6">
+            <!-- Memory Training Card -->
+            <div class="card rounded-xl overflow-hidden transition-all duration-300">
+                <div class="p-4 sm:p-6 flex flex-col items-center text-center">
+                    <div class="w-16 h-16 sm:w-24 sm:h-24 bg-purple-900/20 rounded-full flex items-center justify-center mb-4 sm:mb-6 floating">
+                        <i class="fas fa-brain text-2xl sm:text-4xl text-purple-400"></i>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-semibold text-white mb-2 sm:mb-3">Тренировка памяти</h2>
+                    <p class="text-sm sm:text-base text-gray-300 mb-4 sm:mb-6">Улучшите свою память с помощью специальных упражнений и техник запоминания.</p>
+                    <button onclick="window.location.href='page4.html'" class="btn-primary font-medium py-2 px-6 sm:py-3 sm:px-8 rounded-full relative z-10 text-sm sm:text-base clickable-sound">
+                        <span class="relative z-20">Начать тренировку</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Math Thinking Card -->
+            <div class="card rounded-xl overflow-hidden transition-all duration-300">
+                <div class="p-4 sm:p-6 flex flex-col items-center text-center">
+                    <div class="w-16 h-16 sm:w-24 sm:h-24 bg-pink-900/20 rounded-full flex items-center justify-center mb-4 sm:mb-6 floating" style="animation-delay: 0.5s;">
+                        <i class="fas fa-square-root-alt text-2xl sm:text-4xl text-pink-400"></i>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-semibold text-white mb-2 sm:mb-3">Математическое мышление</h2>
+                    <p class="text-sm sm:text-base text-gray-300 mb-4 sm:mb-6">Развивайте логическое и аналитическое мышление через решение математических задач.</p>
+                    <button onclick="window.location.href='page3.html'" class="btn-secondary font-medium py-2 px-6 sm:py-3 sm:px-8 rounded-full relative z-10 text-sm sm:text-base clickable-sound">
+                        <span class="relative z-20">Начать тренировку</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Features Section -->
+        <section class="mt-8 sm:mt-16">
+            <h2 class="text-2xl sm:text-3xl font-bold text-center text-white mb-6 sm:mb-8">Почему стоит тренироваться?</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 features-section">
+                <div class="bg-slate-800/50 p-4 sm:p-6 rounded-xl feature-card hover:shadow-lg transition-shadow">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-900/20 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                        <i class="fas fa-chart-line text-blue-400 text-lg sm:text-xl"></i>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-semibold mb-1 sm:mb-2 text-white">Улучшение когнитивных функций</h3>
+                    <p class="text-xs sm:text-sm text-gray-300">Регулярные тренировки развивают память, внимание и скорость мышления.</p>
+                </div>
+                <div class="bg-slate-800/50 p-4 sm:p-6 rounded-xl feature-card hover:shadow-lg transition-shadow">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-900/20 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                        <i class="fas fa-lightbulb text-green-400 text-lg sm:text-xl"></i>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-semibold mb-1 sm:mb-2 text-white">Развитие креативности</h3>
+                    <p class="text-xs sm:text-sm text-gray-300">Тренировки стимулируют нестандартное мышление и творческий подход.</p>
+                </div>
+                <div class="bg-slate-800/50 p-4 sm:p-6 rounded-xl feature-card hover:shadow-lg transition-shadow">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-900/20 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                        <i class="fas fa-clock text-yellow-400 text-lg sm:text-xl"></i>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-semibold mb-1 sm:mb-2 text-white">Экономия времени</h3>
+                    <p class="text-xs sm:text-sm text-gray-300">Улучшенные навыки мышления помогают быстрее решать повседневные задачи.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply video setting
+            const videoBackground = document.getElementById('video-background');
+            if (videoBackground) {
+                const SETTINGS_KEY = 'app_settings';
+                const savedSettings = localStorage.getItem(SETTINGS_KEY);
+                let showVideo = true; // Default to true
+                if (savedSettings) {
+                    try {
+                        const settings = JSON.parse(savedSettings);
+                        if (settings.showVideoBackground === false) {
+                            showVideo = false;
+                        }
+                    } catch (e) { console.error("Could not parse settings, using default for video.", e); }
+                }
+                videoBackground.style.display = showVideo ? 'block' : 'none';
+            }
+
+            // Theme toggle functionality
+            const themeToggle = document.getElementById('theme-toggle');
+            const body = document.body;
+            
+            // Set initial theme based on checkbox
+            if (themeToggle.checked) {
+                body.classList.add('dark-mode');
+                body.classList.remove('light-mode');
+            } else {
+                body.classList.add('light-mode');
+                body.classList.remove('dark-mode');
+            }
+            
+            themeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    body.classList.add('dark-mode');
+                    body.classList.remove('light-mode');
+                } else {
+                    body.classList.add('light-mode');
+                    body.classList.remove('dark-mode');
+                }
+            });
+            
+            // Mobile menu functionality
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            
+            mobileMenuBtn.addEventListener('click', function() {
+                mobileMenu.classList.toggle('active');
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!mobileMenu.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
+                    mobileMenu.classList.remove('active');
+                }
+            });
+            
+            // Add pulse animation to buttons on hover
+            const buttons = document.querySelectorAll('.btn-primary, .btn-secondary');
+            buttons.forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    this.classList.add('pulse');
+                });
+                
+                button.addEventListener('mouseleave', function() {
+                    this.classList.remove('pulse');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

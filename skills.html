@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Mobile optimization: prevent scaling, set initial scale -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Block Editor - Save & Mobile Optimized</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Basic Reset & Mobile Behavior */
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            overflow: hidden; /* Prevent scrolling on body */
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            overscroll-behavior: none; /* Prevent bounce effect */
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+        }
+        #video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -1;
+            object-fit: cover;
+            filter: brightness(0.6);
+        }
+
+        /* Workspace container: handles touch actions */
+        .workspace-container {
+            flex: 1; position: relative; overflow: hidden;
+            cursor: grab;
+            touch-action: none; /* Crucial for preventing browser scroll/zoom during pan/drag */
+            background-color: #f9fafb; /* Slightly off-white bg for contrast */
+        }
+
+        /* Inner workspace: holds blocks and grid */
+        .workspace {
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+            background-image: linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+                              linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+                              linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+                              linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+            background-size: 25px 25px; /* Slightly larger grid */
+            background-position: 0 0, 0 12.5px, 12.5px -12.5px, -12.5px 0px;
+            transform-origin: 0 0;
+            transition: transform 0.2s ease;
+        }
+
+        /* Blocks: base styling */
+        .block {
+            position: absolute; border: 2px dashed transparent;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.1s ease-out; /* Added transform transition */
+            user-select: none; box-sizing: border-box;
+            min-width: 50px; min-height: 40px; /* Slightly taller min height */
+            background-clip: padding-box;
+            cursor: pointer;
+            border-radius: 6px; /* Slightly more rounded */
+            background-color: white; /* Ensure bg for shadows */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+        }
+        .block.dragging {
+            cursor: grabbing;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); /* Larger shadow when dragging */
+            /* transform: scale(1.02); */ /* Optional: slightly lift block */
+        }
+
+        .block:hover:not(.selected) { border-color: #93c5fd; } /* Lighter blue */
+        .block.selected {
+            border-color: #3b82f6; /* Blue-500 */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4); /* More prominent selection outline */
+            z-index: 10;
+        }
+
+        /* Block content area */
+        .block-content {
+            outline: none; padding: 8px; /* More padding */
+            overflow: hidden; word-wrap: break-word;
+            height: 100%; box-sizing: border-box;
+            pointer-events: none; /* Default: pass events to block */
+            border-radius: 4px; /* Match inner rounding */
+            font-size: 0.9rem; /* Slightly smaller text */
+            color: #374151; /* Gray-700 */
+        }
+        .block-content[contenteditable="true"] {
+             pointer-events: auto; /* Enable events for editing */
+             cursor: text;
+        }
+        .header-block .block-content { font-weight: 600; font-size: 1rem; } /* Semibold */
+
+        /* Resize handle */
+        .block-resize-handle {
+            position: absolute; width: 14px; height: 14px; /* Larger tap target */
+            background: #3b82f6; border: 2px solid white; border-radius: 50%;
+            bottom: -7px; right: -7px; cursor: nwse-resize;
+            opacity: 0; transition: opacity 0.2s; z-index: 11;
+            pointer-events: auto;
+        }
+        .block:hover .block-resize-handle, .block.selected .block-resize-handle { opacity: 1; }
+
+        /* Connection points */
+        .connection-point {
+            position: absolute; width: 16px; height: 16px; /* Larger tap target */
+            background: white; border: 2px solid #60a5fa; border-radius: 50%;
+            cursor: crosshair; opacity: 0; transition: opacity 0.2s, background-color 0.2s;
+            z-index: 12; box-sizing: border-box; pointer-events: auto;
+        }
+        .block:hover .connection-point, .block.selected .connection-point, body.drawing-arrow .connection-point { opacity: 1; }
+        .connection-point:hover { background-color: #3b82f6; border-color: #3b82f6; }
+        .connection-point.top    { top: -8px; left: 50%; transform: translateX(-50%); }
+        .connection-point.right  { top: 50%; right: -8px; transform: translateY(-50%); }
+        .connection-point.bottom { bottom: -8px; left: 50%; transform: translateX(-50%); }
+        .connection-point.left   { top: 50%; left: -8px; transform: translateY(-50%); }
+
+        /* Specific block types */
+        .image-block { background-size: cover; background-position: center; background-color: #e5e7eb; }
+        .image-block .block-content { display: none; }
+        .cube { transform-style: preserve-3d; transform: rotateX(20deg) rotateY(30deg); }
+        .cube-face { /* ... */ }
+
+        /* Controls panel */
+        .controls {
+            position: fixed; bottom: 16px; right: 16px; /* Closer to edge */
+            display: flex; flex-direction: column; /* Vertical stack */
+            gap: 12px; z-index: 50;
+        }
+        .control-btn {
+            width: 44px; height: 44px; /* Larger tap target */
+            border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Smoother transition */
+            color: #4b5563; /* Gray-600 */
+        }
+        .control-btn:hover {
+            transform: scale(1.08);
+            background: #3b82f6; color: white;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        .control-btn:active {
+             transform: scale(0.98); /* Click feedback */
+        }
+
+        /* Trash Zone */
+        .trash-zone { position: fixed; top: 10px; left: calc(16rem + 10px); width: 50px; height: 50px; background-color: rgba(239, 68, 68, 0.1); border: 2px dashed #fca5a5; /* Lighter red */ border-radius: 50%; display: flex; align-items: center; justify-content: center; z-index: 100; transition: all 0.3s; pointer-events: none; }
+        @media (max-width: 767px) { .trash-zone { left: 10px; top: 60px; } /* Position below mobile toggle */ }
+        .trash-zone.active { background-color: rgba(239, 68, 68, 0.7); transform: scale(1.1); border-color: #ef4444; pointer-events: auto; }
+        .trash-zone i { color: #ef4444; font-size: 24px; transition: transform 0.2s; }
+        .trash-zone.active i { transform: scale(1.1); }
+
+        /* SVG Layers */
+        #arrowLayer { /* ... */ }
+        .arrow-line { /* ... */ }
+        #tempArrowLine { /* ... */ }
+        #trajectoryLine { /* ... */ }
+
+        /* Mobile Sidebar Styles */
+        .mobile-sidebar-toggle { position: fixed; top: 10px; left: 10px; z-index: 101; width: 44px; height: 44px; /* Match controls */ border-radius: 50%; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); cursor: pointer; color: #4b5563; }
+        .mobile-overlay { /* ... */ }
+        .sidebar {
+             transition: transform 0.3s ease-in-out;
+             background-color: #f9fafb; /* Match container bg */
+             border-right: 1px solid #e5e7eb; /* Subtle border */
+        }
+        .sidebar h2 { color: #1f2937; } /* Darker heading */
+        .sidebar-item {
+             border-radius: 6px; /* Match blocks */
+             transition: background-color 0.2s, box-shadow 0.2s;
+             font-size: 0.9rem;
+             cursor: grab;
+        }
+        .sidebar-item:hover {
+             background-color: #e0e7ff; /* Indigo-100 */
+             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .sidebar-item i { width: 20px; text-align: center; } /* Align icons */
+
+        @media (max-width: 767px) {
+             .sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 40; transform: translateX(-100%); border-right: none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
+             .mobile-sidebar-open .sidebar { transform: translateX(0); }
+        }
+        /* Deleting animation */
+        .block.deleting { /* ... */ }
+        @keyframes deleteAnimation { /* ... */ }
+
+    </style>
+    <script src="sounds.js" defer></script>
+</head>
+<body class="bg-gray-100 h-screen flex overflow-hidden">
+
+    <video autoplay loop muted playsinline id="video-background" style="display: none;">
+        <source src="background.mp4" type="video/mp4">
+    </video>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-sidebar-toggle md:hidden clickable-sound" id="mobileMenuToggle" title="Toggle Elements"><i class="fas fa-bars"></i></button>
+    <!-- Mobile Overlay -->
+    <div class="mobile-overlay md:hidden" id="mobileOverlay"></div>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar w-64 bg-white shadow-lg p-4 flex-col shrink-0 fixed inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 md:flex z-40">
+        <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-800">Elements</h2>
+            <button class="md:hidden text-gray-500 hover:text-gray-700 clickable-sound" id="mobileMenuClose" title="Close Menu"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="space-y-2 mb-6 flex-1 overflow-y-auto"> {/* Allow scrolling if many elements */}
+            {/* Draggable elements */}
+            <div class="p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition flex items-center sidebar-item" draggable="true" data-type="header" ondragstart="dragStart(event)"><i class="fas fa-heading mr-3 text-blue-500 fa-fw"></i><span>Header</span></div>
+            <div class="p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition flex items-center sidebar-item" draggable="true" data-type="text" ondragstart="dragStart(event)"><i class="fas fa-font mr-3 text-blue-500 fa-fw"></i><span>Text</span></div>
+            <div class="p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition flex items-center sidebar-item" draggable="true" data-type="image" ondragstart="dragStart(event)"><i class="fas fa-image mr-3 text-blue-500 fa-fw"></i><span>Image</span></div>
+            <div class="p-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition flex items-center sidebar-item" draggable="true" data-type="cube" ondragstart="dragStart(event)"><i class="fas fa-cube mr-3 text-blue-500 fa-fw"></i><span>3D Cube</span></div>
+        </div>
+        <div class="mt-auto border-t border-gray-200 pt-3">
+            <button class="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg transition text-sm flex items-center justify-center gap-2 clickable-sound" onclick="clearWorkspace()">
+                <i class="fas fa-trash-alt"></i> Clear All
+            </button>
+        </div>
+    </div>
+
+    <!-- Workspace Container -->
+    <div
+        class="workspace-container" id="workspaceContainer"
+        ondragover="allowDrop(event)" ondrop="drop(event)"
+        onmousedown="containerMouseDown(event)" onmousemove="containerMouseMove(event)"
+        onmouseup="containerMouseUp(event)" onmouseleave="containerMouseLeave(event)"
+        onwheel="zoom(event)"
+        ontouchstart="containerTouchStart(event)" ontouchmove="containerTouchMove(event)"
+        ontouchend="containerTouchEnd(event)">
+
+         <div id="workspace" class="workspace">
+            {/* SVG Layer */}
+            <svg id="arrowLayer">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth"><polygon points="0 0, 10 3.5, 0 7" fill="#6b7280" /></marker>
+                    <marker id="arrowhead-selected" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth"><polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" /></marker>
+                    <marker id="arrowhead-hover" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth"><polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" /></marker>
+                </defs>
+                 <line id="tempArrowLine" x1="0" y1="0" x2="0" y2="0" style="display: none;" marker-end="url(#arrowhead)"/>
+                 <polyline id="trajectoryLine" points="" style="display: none;" />
+            </svg>
+            {/* Blocks will be added here */}
+        </div>
+    </div>
+
+    {/* Trash zone */}
+    <div class="trash-zone" id="trashZone"><i class="fas fa-trash"></i></div>
+
+    {/* Controls */}
+    <div class="controls">
+        <div class="control-btn clickable-sound" title="Save Workspace" onclick="saveWorkspace()"><i class="fas fa-save fa-fw"></i></div>
+        <div class="control-btn clickable-sound" title="Zoom In" onclick="zoomIn()"><i class="fas fa-search-plus fa-fw"></i></div>
+        <div class="control-btn clickable-sound" title="Zoom Out" onclick="zoomOut()"><i class="fas fa-search-minus fa-fw"></i></div>
+        <div class="control-btn clickable-sound" title="Reset View" onclick="resetView()"><i class="fas fa-expand fa-fw"></i></div>
+    </div>
+
+    <script>
+        // --- Global State & Elements ---
+        const workspace = {
+            container: document.getElementById('workspaceContainer'),
+            element: document.getElementById('workspace'),
+            arrowLayer: document.getElementById('arrowLayer'),
+            tempArrowLine: document.getElementById('tempArrowLine'),
+            trajectoryLine: document.getElementById('trajectoryLine'),
+            trashZone: document.getElementById('trashZone'),
+            sidebar: document.getElementById('sidebar'),
+            mobileMenuToggle: document.getElementById('mobileMenuToggle'),
+            mobileMenuClose: document.getElementById('mobileMenuClose'),
+            mobileOverlay: document.getElementById('mobileOverlay'),
+            scale: 1, offsetX: 0, offsetY: 0,
+            selectedItem: null,
+            interactionMode: 'idle', // 'panning', 'draggingBlock', 'resizing', 'drawingArrow', 'editing'
+            // Interaction-specific state objects
+            panState: { isActive: false, startX: 0, startY: 0 },
+            dragBlockState: { isActive: false, block: null, startX: 0, startY: 0, prevX: 0, prevY: 0, trajectoryPoints: [] },
+            resizeState: { isActive: false, block: null, startX: 0, startY: 0, startW: 0, startH: 0 },
+            drawArrowState: { isActive: false, startBlockId: null, startPointId: null, startX: 0, startY: 0 },
+            dragToTrashState: { isActive: false },
+            // Config
+            maxTrajectoryPoints: 30,
+            // Data stores
+            blocks: [], // { id, element, type, x, y, width, height, content?, imageUrl? }
+            arrows: [], // { id, element, type, startBlockId, startPointId, endBlockId, endPointId }
+        };
+
+        // --- Initialization & Global Listeners ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Apply video setting
+            const videoBackground = document.getElementById('video-background');
+            if (videoBackground) {
+                const SETTINGS_KEY = 'app_settings';
+                const savedSettings = localStorage.getItem(SETTINGS_KEY);
+                let showVideo = true; // Default to true
+                if (savedSettings) {
+                    try {
+                        const settings = JSON.parse(savedSettings);
+                        if (settings.showVideoBackground === false) {
+                            showVideo = false;
+                        }
+                    } catch (e) { console.error("Could not parse settings, using default for video.", e); }
+                }
+                videoBackground.style.display = showVideo ? 'block' : 'none';
+                // Adjust workspace background if video is on
+                if (showVideo) {
+                    document.querySelector('.workspace-container').style.backgroundColor = 'transparent';
+                }
+            }
+
+            updateWorkspaceTransform();
+            workspace.container.style.cursor = 'grab';
+            workspace.mobileMenuToggle.addEventListener('click', toggleMobileSidebar);
+            workspace.mobileMenuClose.addEventListener('click', toggleMobileSidebar);
+            workspace.mobileOverlay.addEventListener('click', toggleMobileSidebar);
+            workspace.sidebar.querySelectorAll('.sidebar-item').forEach(item => {
+                 item.addEventListener('dragstart', () => { if (document.body.classList.contains('mobile-sidebar-open')) toggleMobileSidebar(); });
+            });
+            document.addEventListener('keydown', handleKeyDown);
+        });
+
+        // --- Mobile Sidebar ---
+        function toggleMobileSidebar() { document.body.classList.toggle('mobile-sidebar-open'); }
+
+        // --- Drag and Drop (Sidebar -> Workspace) ---
+        function dragStart(e) { /* ... (no change) ... */
+            const type = e.target.dataset.type;
+            if (type && type !== 'arrow') { e.dataTransfer.setData('type', type); e.dataTransfer.effectAllowed = 'copy'; }
+            else { e.preventDefault(); }
+        }
+        function allowDrop(e) { /* ... (no change) ... */
+             e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+             // Optional: visual feedback on drag over workspace
+        }
+        function drop(e) { /* ... (no change) ... */
+            e.preventDefault();
+            const type = e.dataTransfer.getData('type');
+            if (!type || type === 'arrow' || workspace.sidebar.contains(e.target)) return;
+            const rect = workspace.element.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / workspace.scale;
+            const y = (e.clientY - rect.top) / workspace.scale;
+            createBlock(type, x, y);
+        }
+
+        // --- Block Creation ---
+        function createBlock(type, x, y) {
+            const blockId = 'block-' + Date.now() + Math.random().toString(36).substring(2, 7);
+            let content = '', specificClass = '', defaultWidth = 150, defaultHeight = 50, imageUrl = null;
+
+            // Default content/settings based on type
+            switch(type) {
+                case 'header': specificClass = 'header-block'; content = 'Header'; defaultHeight = 40; break;
+                case 'text': specificClass = 'text-block'; content = 'Click to edit'; break;
+                case 'image': specificClass = 'image-block'; content = ''; defaultWidth = 150; defaultHeight = 150; imageUrl = 'https://via.placeholder.com/150'; break;
+                case 'cube': specificClass = 'cube'; content = ''; defaultWidth = 100; defaultHeight = 100; break;
+                default: return null;
+            }
+
+            const blockElement = document.createElement('div');
+            blockElement.className = `block ${specificClass}`; blockElement.id = blockId;
+            blockElement.style.left = x + 'px'; blockElement.style.top = y + 'px';
+            blockElement.style.width = defaultWidth + 'px'; blockElement.style.height = defaultHeight + 'px';
+
+            let contentHTML = `<div class="block-content">${content}</div>`;
+            if (type === 'cube') contentHTML = `<div class="cube-face front"></div><div class="cube-face back"></div><div class="cube-face right"></div><div class="cube-face left"></div><div class="cube-face top"></div><div class="cube-face bottom"></div>`;
+            const connectionPointsHTML = `<div class="connection-point top" data-point-id="top"></div><div class="connection-point right" data-point-id="right"></div><div class="connection-point bottom" data-point-id="bottom"></div><div class="connection-point left" data-point-id="left"></div>`;
+            const resizeHandleHTML = `<div class="block-resize-handle" title="Double-click and drag to resize"></div>`;
+            blockElement.innerHTML = contentHTML + connectionPointsHTML + resizeHandleHTML;
+
+            if (type === 'image' && imageUrl) blockElement.style.backgroundImage = `url(${imageUrl})`;
+
+            // Attach listeners
+            blockElement.addEventListener('mousedown', blockBodyMouseDown);
+            blockElement.addEventListener('touchstart', blockBodyTouchStart, { passive: false });
+            blockElement.addEventListener('click', blockClick);
+            const resizeHandle = blockElement.querySelector('.block-resize-handle');
+            if (resizeHandle) resizeHandle.addEventListener('dblclick', resizeHandleDoubleClick);
+            blockElement.querySelectorAll('.connection-point').forEach(cp => {
+                cp.addEventListener('mousedown', connectionPointMouseDown);
+                // cp.addEventListener('touchstart', connectionPointTouchStart, { passive: false });
+            });
+
+            workspace.element.appendChild(blockElement);
+
+            // Store data, including content/imageUrl for saving
+            const blockData = { id: blockId, element: blockElement, type: type, x: x, y: y, width: defaultWidth, height: defaultHeight };
+            if (content) blockData.content = content;
+            if (imageUrl) blockData.imageUrl = imageUrl;
+            workspace.blocks.push(blockData);
+
+            selectItem(blockData);
+            return blockData;
+        }
+
+        // --- Item Selection ---
+        function selectItem(item) { /* ... (no change) ... */
+            if (workspace.selectedItem === item) return;
+            if (workspace.selectedItem) {
+                const prevItem = workspace.selectedItem;
+                if (prevItem.type === 'arrow') { /* deselect arrow */
+                     prevItem.element.classList.remove('selected');
+                    prevItem.element.setAttribute('marker-end', 'url(#arrowhead)');
+                    prevItem.element.style.stroke = '#6b7280';
+                } else { /* deselect block */
+                    prevItem.element.classList.remove('selected');
+                    prevItem.element.style.zIndex = 1;
+                    const contentEl = prevItem.element.querySelector('.block-content[contenteditable="true"]');
+                    if (contentEl) contentEl.blur();
+                }
+            }
+            workspace.selectedItem = item;
+            if (item) {
+                if (item.type === 'arrow') { /* select arrow */
+                     item.element.classList.add('selected');
+                    item.element.setAttribute('marker-end', 'url(#arrowhead-selected)');
+                    item.element.style.stroke = '#ef4444';
+                    item.element.parentNode.appendChild(item.element);
+                } else { /* select block */
+                    item.element.classList.add('selected');
+                    item.element.style.zIndex = 10;
+                    workspace.blocks.forEach(b => { if (b !== item) b.element.style.zIndex = 1; });
+                }
+            }
+        }
+
+        // --- Container Interaction ---
+        function containerMouseDown(e) { if (e.button !== 0) return; if (e.target === workspace.container || e.target === workspace.element) startPan(e); }
+        function containerMouseMove(e) { handleMove(e); }
+        function containerMouseUp(e) { if (e.button !== 0) return; endCurrentInteraction(e); }
+        function containerMouseLeave(e) { if (workspace.interactionMode !== 'idle' && workspace.interactionMode !== 'editing') endCurrentInteraction(e); }
+        function containerTouchStart(e) { if (e.touches.length === 1) { const t = e.touches[0]; const target = document.elementFromPoint(t.clientX, t.clientY); if (target === workspace.container || target === workspace.element) startPan(t); } }
+        function containerTouchMove(e) { if (e.touches.length === 1) { e.preventDefault(); /* Prevent scroll */ handleMove(e.touches[0]); } }
+        function containerTouchEnd(e) { if (e.changedTouches.length > 0) endCurrentInteraction(e.changedTouches[0]); else endCurrentInteraction(e); }
+
+        // Combined Move Handler
+        function handleMove(event) {
+            switch (workspace.interactionMode) {
+                case 'panning': pan(event); break;
+                case 'draggingBlock': dragBlockPan(event); break;
+                case 'resizing': handleResizeMove(event); break;
+                case 'drawingArrow': drawTemporaryArrow(event); break;
+            }
+        }
+
+        // --- Interaction Starters ---
+        function blockBodyMouseDown(e) { if (e.button !== 0 || workspace.interactionMode !== 'idle') return; e.stopPropagation(); const block = workspace.blocks.find(b => b.id === e.currentTarget.id); if (block) { selectItem(block); startBlockDragPan(block, e); } }
+        function blockBodyTouchStart(e) { if (e.touches.length !== 1 || workspace.interactionMode !== 'idle') return; e.stopPropagation(); e.preventDefault(); const block = workspace.blocks.find(b => b.id === e.currentTarget.id); if (block) { selectItem(block); startBlockDragPan(block, e.touches[0]); } }
+        function connectionPointMouseDown(e) { if (e.button !== 0 || workspace.interactionMode !== 'idle') return; e.stopPropagation(); e.preventDefault(); const point = e.currentTarget; const blockEl = point.closest('.block'); if (blockEl) startArrowDraw(blockEl.id, point.dataset.pointId, e); }
+        function resizeHandleDoubleClick(e) { if (e.button !== 0 || workspace.interactionMode !== 'idle') return; e.stopPropagation(); e.preventDefault(); const blockEl = e.target.closest('.block'); const block = workspace.blocks.find(b => b.id === blockEl?.id); if (block) startResize(block, e); }
+        function blockClick(e) { if (e.button !== 0 || workspace.interactionMode !== 'idle') return; const block = workspace.blocks.find(b => b.id === e.currentTarget.id); if (block && workspace.selectedItem === block) editBlock(block); }
+
+
+        // --- Interaction Logic ---
+        function startPan(event) {
+            if (workspace.interactionMode !== 'idle') return;
+            selectItem(null); // Deselect on background pan
+            workspace.interactionMode = 'panning';
+            workspace.panState = { isActive: true, startX: event.clientX - workspace.offsetX, startY: event.clientY - workspace.offsetY };
+            workspace.container.style.cursor = 'grabbing';
+        }
+        function pan(event) {
+            if (!workspace.panState.isActive) return;
+            workspace.offsetX = event.clientX - workspace.panState.startX;
+            workspace.offsetY = event.clientY - workspace.panState.startY;
+            updateWorkspaceTransform();
+        }
+
+        function startBlockDragPan(block, event) {
+            if (workspace.interactionMode !== 'idle') return;
+            workspace.interactionMode = 'draggingBlock';
+            const initialPoint = { x: block.x + block.width / 2, y: block.y + block.height / 2 };
+            workspace.dragBlockState = {
+                isActive: true, block: block,
+                startX: event.clientX, startY: event.clientY, // Initial mouse/touch screen coords
+                prevX: event.clientX, prevY: event.clientY, // Previous frame's screen coords
+                trajectoryPoints: [initialPoint]
+            };
+            updateTrajectoryLine();
+            workspace.trajectoryLine.style.display = 'block';
+            block.element.classList.add('dragging');
+            workspace.container.style.cursor = 'grabbing';
+        }
+        function dragBlockPan(event) {
+            if (!workspace.dragBlockState.isActive) return;
+            const state = workspace.dragBlockState;
+            const mouseDeltaX = event.clientX - state.prevX;
+            const mouseDeltaY = event.clientY - state.prevY;
+
+            // Pan workspace
+            workspace.offsetX += mouseDeltaX;
+            workspace.offsetY += mouseDeltaY;
+
+            // Adjust block data position inversely (scaled)
+            state.block.x -= mouseDeltaX / workspace.scale;
+            state.block.y -= mouseDeltaY / workspace.scale;
+
+            updateWorkspaceTransform(); // Updates transform and visually positions blocks/arrows
+
+            // Update trajectory
+            const newPoint = { x: state.block.x + state.block.width / 2, y: state.block.y + state.block.height / 2 };
+            state.trajectoryPoints.push(newPoint);
+            if (state.trajectoryPoints.length > workspace.maxTrajectoryPoints) state.trajectoryPoints.shift();
+            updateTrajectoryLine();
+
+            // Update prev coords for next frame
+            state.prevX = event.clientX; state.prevY = event.clientY;
+            checkTrashZone(event.clientX, event.clientY);
+        }
+
+        function startResize(block, event) {
+            if (workspace.interactionMode !== 'idle') return;
+            workspace.interactionMode = 'resizing';
+            workspace.resizeState = { isActive: true, block: block, startX: event.clientX, startY: event.clientY, startW: block.width, startH: block.height };
+            workspace.container.style.cursor = 'nwse-resize';
+        }
+        function handleResizeMove(event) {
+            if (!workspace.resizeState.isActive) return;
+            const state = workspace.resizeState;
+            const dx = (event.clientX - state.startX) / workspace.scale;
+            const dy = (event.clientY - state.startY) / workspace.scale;
+            let newW = Math.max(50, state.startW + dx);
+            let newH = Math.max(50, state.startH + dy);
+            // TODO: Aspect ratio for cube if needed
+            state.block.width = newW; state.block.height = newH; // Update data
+            state.block.element.style.width = newW + 'px'; state.block.element.style.height = newH + 'px'; // Update style
+            updateArrowsConnectedToBlock(state.block.id);
+        }
+
+        function startArrowDraw(blockId, pointId, event) {
+            if (workspace.interactionMode !== 'idle') return;
+            selectItem(null);
+            const startCoordsWS = getWorkspaceConnectionPointCoords(blockId, pointId);
+            if (!startCoordsWS) return;
+            workspace.interactionMode = 'drawingArrow';
+            workspace.drawArrowState = { isActive: true, startBlockId: blockId, startPointId: pointId, startX: startCoordsWS.x, startY: startCoordsWS.y };
+            document.body.classList.add('drawing-arrow');
+            workspace.tempArrowLine.setAttribute('x1', startCoordsWS.x); workspace.tempArrowLine.setAttribute('y1', startCoordsWS.y);
+            workspace.tempArrowLine.setAttribute('x2', startCoordsWS.x); workspace.tempArrowLine.setAttribute('y2', startCoordsWS.y);
+            workspace.tempArrowLine.style.display = 'block';
+        }
+        function drawTemporaryArrow(event) {
+            if (!workspace.drawArrowState.isActive) return;
+            const rect = workspace.element.getBoundingClientRect();
+            const mouseX_ws = (event.clientX - rect.left) / workspace.scale;
+            const mouseY_ws = (event.clientY - rect.top) / workspace.scale;
+            workspace.tempArrowLine.setAttribute('x2', mouseX_ws); workspace.tempArrowLine.setAttribute('y2', mouseY_ws);
+        }
+
+        // --- Ending Interactions ---
+        function endCurrentInteraction(event) {
+            const mode = workspace.interactionMode;
+            if (mode === 'idle') return;
+
+            if (mode === 'panning') {
+                 workspace.panState.isActive = false;
+            } else if (mode === 'draggingBlock') {
+                if (workspace.dragBlockState.isActive) {
+                    const block = workspace.dragBlockState.block;
+                    block?.element.classList.remove('dragging');
+                     // Final position update (data already updated, ensure style sync)
+                    block.element.style.left = block.x + 'px';
+                    block.element.style.top = block.y + 'px';
+                    if (workspace.dragToTrashState.isActive) {
+                        deleteBlockWithAnimation(block);
+                    }
+                    workspace.dragBlockState.isActive = false;
+                    workspace.trajectoryLine.style.display = 'none'; // Hide trajectory
+                    workspace.trajectoryLine.setAttribute('points', '');
+                }
+            } else if (mode === 'resizing') {
+                 if (workspace.resizeState.isActive) {
+                     // Final size already in data, update arrows one last time if needed
+                     updateArrowsConnectedToBlock(workspace.resizeState.block.id);
+                     workspace.resizeState.isActive = false;
+                 }
+            } else if (mode === 'drawingArrow') {
+                 finishArrowDraw(event); // Also resets drawing state
+            }
+
+            // Reset common state
+            workspace.interactionMode = 'idle';
+            workspace.container.style.cursor = 'grab';
+            workspace.dragToTrashState.isActive = false;
+            workspace.trashZone.classList.remove('active');
+        }
+
+
+        // --- Trajectory Line Update ---
+        function updateTrajectoryLine() {
+            if (!workspace.dragBlockState.isActive) return;
+            const pointsString = workspace.dragBlockState.trajectoryPoints.map(p => `${p.x},${p.y}`).join(' ');
+            workspace.trajectoryLine.setAttribute('points', pointsString);
+        }
+
+        // --- Trash Zone & Deletion ---
+        function checkTrashZone(clientX, clientY) {
+            const trashRect = workspace.trashZone.getBoundingClientRect();
+            const isOver = clientX >= trashRect.left && clientX <= trashRect.right && clientY >= trashRect.top && clientY <= trashRect.bottom;
+            workspace.dragToTrashState.isActive = isOver;
+            if (isOver) workspace.trashZone.classList.add('active');
+            else workspace.trashZone.classList.remove('active');
+        }
+        function deleteBlockWithAnimation(block) { /* ... (no change) ... */
+            if (!block || block.type === 'arrow' || block.element.classList.contains('deleting')) return;
+            const blockElement = block.element;
+            const arrowsToRemove = workspace.arrows.filter(arr => arr.startBlockId === block.id || arr.endBlockId === block.id);
+            arrowsToRemove.forEach(arr => deleteArrow(arr, false));
+            const trashRect = workspace.trashZone.getBoundingClientRect();
+            const blockRect = blockElement.getBoundingClientRect();
+            const targetX_abs = trashRect.left + trashRect.width / 2; const targetY_abs = trashRect.top + trashRect.height / 2;
+            const blockCenterX_abs = blockRect.left + blockRect.width / 2; const blockCenterY_abs = blockRect.top + blockRect.height / 2;
+            const tx = targetX_abs - blockCenterX_abs; const ty = targetY_abs - blockCenterY_abs;
+            blockElement.style.setProperty('--tx', `${tx}px`); blockElement.style.setProperty('--ty', `${ty}px`);
+            blockElement.classList.add('deleting'); blockElement.style.zIndex = 100;
+            setTimeout(() => {
+                blockElement.remove();
+                workspace.blocks = workspace.blocks.filter(b => b.id !== block.id);
+                if (workspace.selectedItem && workspace.selectedItem.id === block.id) workspace.selectedItem = null;
+            }, 500);
+        }
+
+
+        // --- Block Editing ---
+        function editBlock(block) {
+            if (!block || block.type === 'arrow' || workspace.interactionMode !== 'idle') return;
+             const contentEl = block.element.querySelector('.block-content');
+
+            if ((block.type === 'text' || block.type === 'header') && contentEl) {
+                 if (contentEl.getAttribute('contenteditable') === 'true') return;
+                 workspace.interactionMode = 'editing';
+                 contentEl.setAttribute('contenteditable', 'true');
+                 contentEl.style.pointerEvents = 'auto';
+                 contentEl.focus(); document.execCommand('selectAll', false, null);
+                 contentEl.addEventListener('blur', handleContentBlur);
+                 contentEl.addEventListener('keydown', handleContentKeyDown);
+            } else if (block.type === 'image') {
+                 workspace.interactionMode = 'editing'; // Prevent other actions during prompt
+                 const currentUrl = block.imageUrl || '';
+                 const url = prompt('Enter image URL:', currentUrl);
+                 if (url !== null) { // Handle cancel vs empty string
+                     block.imageUrl = url; // Update data model
+                     block.element.style.backgroundImage = url ? `url(${url})` : 'none'; // Update style
+                 }
+                 workspace.interactionMode = 'idle'; // Editing finished
+            }
+        }
+        function handleContentBlur(e) {
+            const contentEl = e.target;
+            const block = workspace.blocks.find(b => b.element.contains(contentEl));
+            contentEl.setAttribute('contenteditable', 'false');
+            contentEl.style.pointerEvents = 'none';
+            contentEl.removeEventListener('blur', handleContentBlur);
+            contentEl.removeEventListener('keydown', handleContentKeyDown);
+            if (block) {
+                 block.content = contentEl.innerHTML; // Save content to data model
+            }
+            if (workspace.interactionMode === 'editing') workspace.interactionMode = 'idle';
+        }
+        function handleContentKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.target.blur(); }
+            else if (e.key === 'Escape') { e.target.blur(); }
+        }
+
+        // --- Arrow Drawing Logic ---
+         function finishArrowDraw(event) {
+             if (!workspace.drawArrowState.isActive) return;
+             const endPointElement = document.elementFromPoint(event.clientX, event.clientY);
+             if (endPointElement?.classList.contains('connection-point')) {
+                 const endBlockElement = endPointElement.closest('.block');
+                 const endBlockId = endBlockElement?.id;
+                 const endPointId = endPointElement.dataset.pointId;
+                 if (endBlockId && endPointId && endBlockId !== workspace.drawArrowState.startBlockId) {
+                     addArrow(workspace.drawArrowState.startBlockId, workspace.drawArrowState.startPointId, endBlockId, endPointId);
+                 }
+             }
+             cancelArrowDraw();
+         }
+         function cancelArrowDraw() {
+             if (!workspace.drawArrowState.isActive) return;
+             workspace.drawArrowState.isActive = false;
+             workspace.tempArrowLine.style.display = 'none';
+             document.body.classList.remove('drawing-arrow');
+             if (workspace.interactionMode === 'drawingArrow') workspace.interactionMode = 'idle';
+         }
+
+
+        // --- Arrow Management ---
+        function addArrow(startBlockId, startPointId, endBlockId, endPointId) { /* ... (no change) ... */
+            const arrowId = 'arrow-' + Date.now() + Math.random().toString(36).substring(2, 7);
+             const arrowElement = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+             arrowElement.setAttribute('id', arrowId); arrowElement.setAttribute('class', 'arrow-line');
+             arrowElement.setAttribute('marker-end', 'url(#arrowhead)'); workspace.arrowLayer.appendChild(arrowElement);
+             const arrowData = { id: arrowId, type: 'arrow', element: arrowElement, startBlockId, startPointId, endBlockId, endPointId };
+             workspace.arrows.push(arrowData);
+             arrowElement.addEventListener('mousedown', (e) => { if(e.button===0){e.stopPropagation(); selectItem(arrowData);} });
+             arrowElement.addEventListener('mouseenter', () => { if(workspace.selectedItem !== arrowData){ arrowElement.style.stroke = '#3b82f6'; arrowElement.setAttribute('marker-end', 'url(#arrowhead-hover)'); } });
+             arrowElement.addEventListener('mouseleave', () => { if(workspace.selectedItem !== arrowData){ arrowElement.style.stroke = '#6b7280'; arrowElement.setAttribute('marker-end', 'url(#arrowhead)'); } else { arrowElement.style.stroke = '#ef4444'; arrowElement.setAttribute('marker-end', 'url(#arrowhead-selected)'); } });
+             updateArrow(arrowData); selectItem(arrowData); return arrowData;
+        }
+        function updateArrow(arrowData) { /* ... (no change) ... */
+            const startCoords = getWorkspaceConnectionPointCoords(arrowData.startBlockId, arrowData.startPointId);
+             const endCoords = getWorkspaceConnectionPointCoords(arrowData.endBlockId, arrowData.endPointId);
+             if (startCoords && endCoords) { arrowData.element.setAttribute('x1', startCoords.x); arrowData.element.setAttribute('y1', startCoords.y); arrowData.element.setAttribute('x2', endCoords.x); arrowData.element.setAttribute('y2', endCoords.y); }
+        }
+        function updateArrowsConnectedToBlock(blockId) { workspace.arrows.forEach(arrow => { if (arrow.startBlockId === blockId || arrow.endBlockId === blockId) updateArrow(arrow); }); }
+        function deleteArrow(arrow, deselect = true) { /* ... (no change) ... */
+             if (!arrow || arrow.type !== 'arrow') return; arrow.element.remove(); workspace.arrows = workspace.arrows.filter(a => a.id !== arrow.id); if (deselect && workspace.selectedItem?.id === arrow.id) workspace.selectedItem = null;
+        }
+
+        // --- Coordinate Helpers ---
+        function getWorkspaceConnectionPointCoords(blockId, pointId) { /* ... (no change) ... */
+             const block = workspace.blocks.find(b => b.id === blockId); if (!block) return null; let relX = 0.5, relY = 0.5; switch (pointId) { case 'top': relY = 0; break; case 'right': relX = 1; break; case 'bottom': relY = 1; break; case 'left': relX = 0; break; } return { x: block.x + block.width * relX, y: block.y + block.height * relY };
+        }
+
+        // --- Workspace Navigation (Zoom & Reset) ---
+         function zoom(e) { /* ... (no change) ... */
+            e.preventDefault(); const rect = workspace.container.getBoundingClientRect(); const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top; const workspaceX = (mouseX - workspace.offsetX) / workspace.scale; const workspaceY = (mouseY - workspace.offsetY) / workspace.scale; const delta = e.deltaY; const zoomFactor = 1.1; const newScale = delta < 0 ? workspace.scale * zoomFactor : workspace.scale / zoomFactor; const clampedScale = Math.min(Math.max(0.1, newScale), 5); workspace.offsetX = mouseX - workspaceX * clampedScale; workspace.offsetY = mouseY - workspaceY * clampedScale; workspace.scale = clampedScale; updateWorkspaceTransform();
+         }
+         function zoomInOut(factor) { /* ... (no change) ... */
+             const rect = workspace.container.getBoundingClientRect(); const centerX = rect.width / 2; const centerY = rect.height / 2; const workspaceX = (centerX - workspace.offsetX) / workspace.scale; const workspaceY = (centerY - workspace.offsetY) / workspace.scale; const newScale = workspace.scale * factor; const clampedScale = Math.min(Math.max(0.1, newScale), 5); workspace.offsetX = centerX - workspaceX * clampedScale; workspace.offsetY = centerY - workspaceY * clampedScale; workspace.scale = clampedScale; updateWorkspaceTransform();
+         }
+         function zoomIn() { zoomInOut(1.2); }
+         function zoomOut() { zoomInOut(1 / 1.2); }
+         function resetView() { /* ... (no change) ... */
+            workspace.scale = 1; workspace.offsetX = 0; workspace.offsetY = 0; updateWorkspaceTransform();
+         }
+         function updateWorkspaceTransform() { /* ... (sync block positions visually) ... */
+             workspace.element.style.transform = `translate(${workspace.offsetX}px, ${workspace.offsetY}px) scale(${workspace.scale})`;
+             workspace.blocks.forEach(block => { block.element.style.left = block.x + 'px'; block.element.style.top = block.y + 'px'; });
+             workspace.arrows.forEach(updateArrow);
+         }
+
+        // --- Save Functionality ---
+        function saveWorkspace() {
+             if (workspace.interactionMode !== 'idle') {
+                 alert("Please finish your current action (e.g., dragging) before saving.");
+                 return;
+             }
+             console.log("Saving workspace...");
+
+             // 1. Prepare data for serialization (exclude DOM elements)
+             const saveData = {
+                 blocks: workspace.blocks.map(block => ({
+                     id: block.id,
+                     type: block.type,
+                     x: block.x,
+                     y: block.y,
+                     width: block.width,
+                     height: block.height,
+                     // Include type-specific data
+                     ...(block.content && { content: block.content }),
+                     ...(block.imageUrl && { imageUrl: block.imageUrl }),
+                 })),
+                 arrows: workspace.arrows.map(arrow => ({
+                     id: arrow.id,
+                     startBlockId: arrow.startBlockId,
+                     startPointId: arrow.startPointId,
+                     endBlockId: arrow.endBlockId,
+                     endPointId: arrow.endPointId,
+                 })),
+                 view: { // Optional: save view state
+                     scale: workspace.scale,
+                     offsetX: workspace.offsetX,
+                     offsetY: workspace.offsetY,
+                 }
+             };
+
+             // 2. Convert to JSON string
+             const jsonString = JSON.stringify(saveData, null, 2); // Pretty print JSON
+
+             // 3. Create Blob
+             const blob = new Blob([jsonString], { type: 'application/json' });
+
+             // 4. Create download link and trigger download
+             const url = URL.createObjectURL(blob);
+             const a = document.createElement('a');
+             a.href = url;
+             a.download = 'workspace.json'; // Filename for download
+             document.body.appendChild(a); // Required for Firefox
+             a.click();
+
+             // 5. Clean up
+             document.body.removeChild(a);
+             URL.revokeObjectURL(url);
+
+             console.log("Workspace saved.");
+             // Optional: provide user feedback (e.g., temporary message)
+        }
+
+
+        // --- Utility Functions ---
+        function clearWorkspace() { /* ... (no change) ... */
+            if (confirm('Are you sure you want to clear the workspace? This cannot be undone.')) {
+                 [...workspace.arrows].forEach(arrow => deleteArrow(arrow, false));
+                 [...workspace.blocks].forEach(block => deleteBlockWithAnimation(block));
+                 workspace.selectedItem = null;
+                 resetView();
+            }
+        }
+        function handleKeyDown(e) { /* ... (escape handling updated) ... */
+             if ((e.key === 'Backspace' || e.key === 'Delete') && workspace.selectedItem && workspace.interactionMode !== 'editing') {
+                 const activeElement = document.activeElement;
+                 if (activeElement && (activeElement.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName))) return;
+                 e.preventDefault();
+                 if (workspace.selectedItem.type === 'arrow') deleteArrow(workspace.selectedItem);
+                 else deleteBlockWithAnimation(workspace.selectedItem);
+             } else if (e.key === 'Escape') {
+                  // Handle Escape key to cancel current interaction
+                 if (workspace.interactionMode === 'drawingArrow') {
+                     cancelArrowDraw();
+                 } else if (workspace.interactionMode === 'editing') {
+                     const content = workspace.selectedItem?.element?.querySelector('.block-content[contenteditable="true"]');
+                     if (content) content.blur(); // Let blur handler reset mode
+                 } else if (workspace.interactionMode !== 'idle') {
+                      // For other modes like dragging, resizing, panning, just end them cleanly
+                      endCurrentInteraction(e);
+                 }
+             }
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Информация о пользователе</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(270deg, #0a0a0a, #101010, #0a0a0a);
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    #video-background {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        min-width: 100%;
+        min-height: 100%;
+        width: auto;
+        height: auto;
+        z-index: -1;
+        object-fit: cover;
+        filter: brightness(0.6);
+    }
+    .userinfo-container {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0,204,255,0.3);
+      width: 100%;
+      max-width: 600px;
+    }
+    .userinfo-header {
+      text-align: center;
+      color: #00ccff;
+    }
+    .userinfo-section {
+      margin-top: 20px;
+    }
+    .userinfo-section h3 {
+      margin-bottom: 10px;
+      color: #00ccff;
+    }
+    .userinfo-data {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 5px;
+    }
+    .back-link {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .back-link a {
+      color: #00ccff;
+      text-decoration: none;
+    }
+  </style>
+  <script src="sounds.js" defer></script>
+</head>
+<body>
+  <video autoplay loop muted playsinline id="video-background" style="display: none;">
+      <source src="background.mp4" type="video/mp4">
+  </video>
+
+  <div class="userinfo-container">
+    <h2 class="userinfo-header">Информация о пользователе</h2>
+    <div class="userinfo-section" id="userInfo">
+      <!-- Данные пользователя появятся здесь -->
+    </div>
+    <div class="back-link">
+      <a href="index.html" class="clickable-sound">Выйти</a>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Apply video setting
+        const videoBackground = document.getElementById('video-background');
+        if (videoBackground) {
+            const SETTINGS_KEY = 'app_settings';
+            const savedSettings = localStorage.getItem(SETTINGS_KEY);
+            let showVideo = true; // Default to true
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.showVideoBackground === false) {
+                        showVideo = false;
+                    }
+                } catch (e) { console.error("Could not parse settings, using default for video.", e); }
+            }
+            videoBackground.style.display = showVideo ? 'block' : 'none';
+        }
+
+        // Original script
+        const userData = JSON.parse(localStorage.getItem('userData'));
+        const userInfoDiv = document.getElementById('userInfo');
+
+        if (userData) {
+          userInfoDiv.innerHTML = `
+            <div class="userinfo-data">
+              <p><strong>Логин:</strong> ${userData.username}</p>
+              <p><strong>Уровень:</strong> ${userData.profile.level}</p>
+              <p><strong>Опыт (XP):</strong> ${userData.profile.xp}</p>
+              <p><strong>Навыки:</strong> ${userData.profile.skills.length ? userData.profile.skills.join(', ') : 'Нет навыков'}</p>
+            </div>
+          `;
+        } else {
+          userInfoDiv.innerHTML = `<p>Данные пользователя не найдены. Пожалуйста, зарегистрируйтесь.</p>`;
+        }
+    });
+  </script>
+</body>
+</html>

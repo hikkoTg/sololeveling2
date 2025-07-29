@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Информация</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="sounds.js" defer></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-dark: #0f172a;
+            --neon-shadow: 0 0 10px #00f2ff, 0 0 20px rgba(0, 242, 255, 0.5);
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            background: var(--neon-dark);
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        #video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -1;
+            object-fit: cover;
+            filter: brightness(0.6);
+        }
+        .info-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--neon-shadow);
+        }
+        .info-button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--neon-blue);
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            transition: all 0.3s ease;
+        }
+        .info-button:hover {
+            background: rgba(0, 242, 255, 0.2);
+            transform: translateY(-3px);
+            box-shadow: var(--neon-shadow);
+        }
+        .info-button i {
+            margin-right: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+        .info-button.disabled {
+            color: #6b7280;
+            background: rgba(55, 65, 81, 0.5);
+            border-color: #4b5563;
+            cursor: not-allowed;
+        }
+        .info-button.disabled:hover {
+            transform: none;
+            box-shadow: none;
+            background: rgba(55, 65, 81, 0.5);
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #9ca3af;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back-link:hover {
+            color: var(--neon-blue);
+        }
+    </style>
+</head>
+<body>
+    <video autoplay loop muted playsinline id="video-background" style="display: none;">
+        <source src="background.mp4" type="video/mp4">
+    </video>
+
+    <div class="info-card">
+        <h1 class="text-3xl font-bold text-center text-cyan-400 mb-8">Меню</h1>
+        <a href="index.html" class="info-button clickable-sound">
+            <i class="fas fa-home"></i>
+            <span>Главная</span>
+        </a>
+        <a href="profile.html" class="info-button clickable-sound">
+            <i class="fas fa-user"></i>
+            <span>Профиль</span>
+        </a>
+        <a href="settings.html" class="info-button clickable-sound">
+            <i class="fas fa-cog"></i>
+            <span>Настройки</span>
+        </a>
+        <a href="index.html" class="back-link clickable-sound">
+            <i class="fas fa-arrow-left mr-2"></i>Вернуться назад
+        </a>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const videoBackground = document.getElementById('video-background');
+            if (!videoBackground) return;
+
+            const SETTINGS_KEY = 'app_settings';
+            const savedSettings = localStorage.getItem(SETTINGS_KEY);
+            let showVideo = true; // Default to true
+
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.showVideoBackground === false) {
+                        showVideo = false;
+                    }
+                } catch (e) {
+                    console.error("Could not parse settings, using default for video.", e);
+                }
+            }
+            
+            videoBackground.style.display = showVideo ? 'block' : 'none';
+        });
+    </script>
+</body>
+</html>

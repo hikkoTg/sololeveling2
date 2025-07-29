@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тренировка памяти</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        @keyframes neonGlow { 
+            0%, 100% { text-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6, 0 0 15px #3b82f6, 0 0 20px #3b82f6; }
+            50% { text-shadow: 0 0 10px #60a5fa, 0 0 20px #60a5fa, 0 0 30px #60a5fa, 0 0 40px #60a5fa; }
+        }
+        @keyframes borderGlow {
+            0%, 100% { box-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6; }
+            50% { box-shadow: 0 0 10px #60a5fa, 0 0 20px #60a5fa; }
+        }
+        
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        .pulse { animation: pulse 1.5s infinite; }
+        .shake { animation: shake 0.3s ease-in-out; }
+        .neon-text { animation: neonGlow 2s infinite alternate; }
+        .neon-border { animation: borderGlow 2s infinite alternate; }
+        
+        .card-flip { perspective: 1000px; }
+        .card-flip-inner { transition: transform 0.6s; transform-style: preserve-3d; }
+        .card-flip.flipped .card-flip-inner { transform: rotateY(180deg); }
+        .card-flip-front, .card-flip-back { backface-visibility: hidden; }
+        .card-flip-back { transform: rotateY(180deg); }
+        
+        .progress-bar { transition: width 0.3s ease; }
+        .success-bg { background: linear-gradient(135deg, #4ade80, #22c55e); }
+        .error-bg { background: linear-gradient(135deg, #f87171, #ef4444); }
+        #reduceSequenceBtn { transition: opacity 0.3s ease, transform 0.3s ease; }
+        #reduceSequenceBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .neon-btn {
+            background-color: #1e40af;
+            color: white;
+            border: 1px solid #3b82f6;
+            transition: all 0.3s;
+        }
+        
+        .neon-btn:hover {
+            background-color: #1e3a8a;
+            box-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6;
+        }
+
+        #video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -1;
+            object-fit: cover;
+            filter: brightness(0.6);
+        }
+
+        /* Hamburger menu for mobile */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: #0f172a; /* var(--neon-dark) */
+            z-index: 90;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .mobile-menu.active {
+            display: block;
+        }
+        .mobile-menu-btn {
+            display: none; /* Hidden by default, shown in media query */
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 100;
+            background-color: rgba(30, 64, 175, 0.8);
+            color: white;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        @media (max-width: 768px) { /* Show on tablet and mobile */
+            .mobile-menu-btn {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<script src="sounds.js" defer></script>
+<body class="min-h-screen flex flex-col">
+    <video autoplay loop muted playsinline id="video-background" style="display: none;">
+        <source src="background.mp4" type="video/mp4">
+    </video>
+
+    <!-- Mobile Menu Button -->
+    <div class="mobile-menu-btn clickable-sound" id="mobileMenuBtn">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="flex flex-col space-y-3">
+            <a href="index.html" class="text-blue-200 hover:text-blue-400 py-2 px-4 rounded clickable-sound">Главная</a>
+            <a href="page2.html" class="text-blue-400 font-bold py-2 px-4 rounded clickable-sound">Тренировки</a>
+            <a href="index.html" class="text-blue-200 hover:text-blue-400 py-2 px-4 rounded clickable-sound">Прогресс</a>
+            <a href="settings.html" class="text-blue-200 hover:text-blue-400 py-2 px-4 rounded clickable-sound">Настройки</a>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 flex-1">
+        <!-- Header -->
+        <header class="text-center mb-12 fade-in">
+             <h1 class="text-4xl font-bold text-blue-400 mb-2 neon-text">Тренировка памяти</h1>
+             <p class="text-lg text-blue-200">Развивайте свою память с помощью увлекательных упражнений</p>
+        </header>
+
+        <!-- Mode Selection -->
+        <div id="modeSelection" class="fade-in">
+             <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-semibold text-blue-300">Выберите режим тренировки</h2>
+                <button id="resetProgressBtn" title="Сбросить весь сохраненный прогресс" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-lg shadow transition neon-border clickable-sound">
+                    <i class="fas fa-sync-alt mr-1"></i> Сбросить прогресс
+                </button>
+             </div>
+             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                 <!-- Cards -->
+                 <div class="card-flip bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-all hover:shadow-xl cursor-pointer neon-border clickable-sound" onclick="startGame('numbers')"> 
+                     <div class="card-flip-inner"> 
+                         <div class="card-flip-front p-6"> 
+                             <div class="text-center"> 
+                                 <div class="w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4 neon-border">
+                                     <i class="fas fa-sort-numeric-up-alt text-3xl text-blue-400"></i>
+                                 </div> 
+                                 <h3 class="text-xl font-semibold mb-2 text-blue-300">Числа</h3> 
+                                 <p class="text-blue-200">Запоминайте последовательности чисел</p> 
+                             </div> 
+                         </div> 
+                     </div> 
+                 </div>
+                 <div class="card-flip bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-all hover:shadow-xl cursor-pointer neon-border clickable-sound" onclick="startGame('phones')"> 
+                     <div class="card-flip-inner"> 
+                         <div class="card-flip-front p-6"> 
+                             <div class="text-center"> 
+                                 <div class="w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4 neon-border">
+                                     <i class="fas fa-phone-alt text-3xl text-blue-400"></i>
+                                 </div> 
+                                 <h3 class="text-xl font-semibold mb-2 text-blue-300">Номера</h3> 
+                                 <p class="text-blue-200">Запоминайте телефонные номера</p> 
+                             </div> 
+                         </div> 
+                     </div> 
+                 </div>
+                 <div class="card-flip bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-all hover:shadow-xl cursor-pointer neon-border clickable-sound" onclick="startGame('letters')"> 
+                     <div class="card-flip-inner"> 
+                         <div class="card-flip-front p-6"> 
+                             <div class="text-center"> 
+                                 <div class="w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4 neon-border">
+                                     <i class="fas fa-font text-3xl text-blue-400"></i>
+                                 </div> 
+                                 <h3 class="text-xl font-semibold mb-2 text-blue-300">Буквы</h3> 
+                                 <p class="text-blue-200">Запоминайте последовательности букв</p> 
+                             </div> 
+                         </div> 
+                     </div> 
+                 </div>
+             </div>
+             <p class="text-center text-sm text-blue-400 mt-6">Ваш прогресс (уровень/очки) сохраняется в браузере.</p>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="hidden max-w-2xl mx-auto">
+            <!-- Progress Bar and Level -->
+            <div class="flex justify-between items-center mb-6">
+                 <div class="flex items-center">
+                     <span class="text-lg font-medium text-blue-300 mr-2">Уровень:</span>
+                     <span id="level" class="text-xl font-bold text-blue-400 neon-text">1</span>
+                 </div>
+                 <div class="flex items-center">
+                      <span class="text-lg font-medium text-blue-300 mr-2">Очки:</span>
+                      <span id="scoreDisplay" class="text-xl font-bold text-green-400 neon-text">0</span>
+                  </div>
+                 <div class="w-full max-w-xs bg-slate-700 rounded-full h-4 ml-4">
+                     <div id="progressBar" class="progress-bar h-4 rounded-full bg-blue-500 neon-border" style="width: 0%"></div>
+                 </div>
+            </div>
+
+            <!-- Instruction -->
+            <div id="instruction" class="bg-slate-800 p-4 rounded-lg shadow mb-6 text-center neon-border">
+                 <p id="instructionText" class="text-blue-300 font-medium">Запомните показанную последовательность</p>
+            </div>
+
+            <!-- Memorization Area -->
+            <div id="memorizationAreaWrapper" class="relative">
+                 <div id="memorizationArea" class="bg-slate-800 p-8 rounded-xl shadow-lg mb-2 neon-border">
+                     <div id="sequenceDisplay" class="text-center text-4xl font-bold text-blue-400 tracking-wider min-h-[48px] neon-text"></div>
+                 </div>
+                 <div class="text-center mb-4">
+                     <button id="reduceSequenceBtn" title="Удалить последний элемент (-1)" class="hidden bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-opacity-75 shadow neon-border clickable-sound">
+                         Убрать последний <i class="fas fa-eraser ml-2"></i>
+                     </button>
+                 </div>
+            </div>
+
+            <!-- Input Area -->
+            <div id="inputArea" class="hidden bg-slate-800 p-6 rounded-xl shadow-lg mb-6 neon-border">
+                 <div class="flex flex-col items-center">
+                     <label for="userInput" class="block text-lg font-medium text-blue-300 mb-3">Введите запомненную последовательность:</label>
+                     <div class="relative w-full max-w-md flex items-center gap-2">
+                         <button id="removeLastInputBtn" title="Стереть введенное" class="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition h-[50px] w-[50px] flex items-center justify-center text-xl neon-border clickable-sound"> 
+                             <i class="fas fa-backspace"></i> 
+                         </button>
+                         <input type="text" id="userInput" class="flex-grow px-4 py-3 rounded-lg border-2 border-blue-500 focus:border-blue-400 focus:ring-blue-400 text-xl text-center font-mono h-[50px] bg-slate-700 text-blue-100" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                         <button id="submitBtn" class="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition h-[50px] w-[50px] flex items-center justify-center text-xl neon-border clickable-sound"> 
+                             <i class="fas fa-check"></i> 
+                         </button>
+                     </div>
+                 </div>
+            </div>
+
+            <!-- Result Area -->
+            <div id="resultArea" class="hidden p-6 rounded-xl shadow-lg text-white text-center mb-6 neon-border">
+                 <div class="flex flex-col items-center">
+                      <div id="resultIcon" class="text-5xl mb-4"></div>
+                      <h3 id="resultText" class="text-2xl font-bold mb-2"></h3>
+                      <p id="resultMessage" class="text-lg"></p>
+                      <p id="correctAnswer" class="text-lg mt-2 font-mono"></p>
+                      <button id="nextBtn" class="mt-6 px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition neon-border clickable-sound">
+                          Следующий уровень <i class="fas fa-arrow-right ml-2"></i>
+                      </button>
+                 </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="text-center mt-6 flex justify-center gap-4">
+                  <button id="backBtn" class="px-4 py-2 text-blue-300 hover:text-blue-200 transition neon-btn clickable-sound"> 
+                      <i class="fas fa-arrow-left mr-2"></i> Вернуться к выбору режима 
+                  </button>
+                  <a href="index.html" class="px-4 py-2 text-blue-300 hover:text-blue-200 transition neon-btn clickable-sound"> 
+                      <i class="fas fa-home mr-2"></i> Главное меню 
+                  </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 py-6 shadow-inner">
+        <div class="container mx-auto px-4 text-center text-blue-300">
+            <p>© 2023 Тренировка памяти. Разработано для улучшения когнитивных способностей.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply video setting
+            const videoBackground = document.getElementById('video-background');
+            if (videoBackground) {
+                const SETTINGS_KEY = 'app_settings';
+                const savedSettings = localStorage.getItem(SETTINGS_KEY);
+                let showVideo = true; // Default to true
+                if (savedSettings) {
+                    try {
+                        const settings = JSON.parse(savedSettings);
+                        if (settings.showVideoBackground === false) {
+                            showVideo = false;
+                        }
+                    } catch (e) { console.error("Could not parse settings, using default for video.", e); }
+                }
+                videoBackground.style.display = showVideo ? 'block' : 'none';
+            }
+
+            // Mobile menu functionality
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('active');
+                });
+
+                // Close menu when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (!mobileMenu.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
+                        mobileMenu.classList.remove('active');
+                    }
+                });
+            }
+
+            // Original script content starts here
+        });
+
+        // --- Constants ---
+        const LOCAL_STORAGE_KEY = 'memoryGameProgress';
+
+        // --- Helper function to calculate sequence length ---
+        function calculateSequenceLength(level, baseLength, modeMaxLength) {
+            const lengthAtLevel4 = baseLength + 3;
+            let calculatedLength;
+            if (level <= 4) {
+                calculatedLength = baseLength + (level - 1);
+            } else {
+                let increments = 0;
+                if (level >= 8) {
+                    increments = Math.floor(level / 4) - 1;
+                }
+                calculatedLength = lengthAtLevel4 + increments;
+            }
+            return Math.min(calculatedLength, modeMaxLength);
+        }
+
+        // --- Helper function to format phone digits ---
+        function formatPhoneSequence(digits) {
+             if (!digits || digits.length === 0) return [];
+             let sequence = ['+7', '('];
+             let currentDigitIndex = 0;
+             const areaCodeLen = Math.min(3, digits.length - currentDigitIndex);
+             sequence.push(...digits.slice(currentDigitIndex, currentDigitIndex + areaCodeLen));
+             currentDigitIndex += areaCodeLen;
+             sequence.push(')');
+              if (currentDigitIndex < digits.length) {
+                 sequence.push(' ');
+                 const part1Len = Math.min(3, digits.length - currentDigitIndex);
+                 sequence.push(...digits.slice(currentDigitIndex, currentDigitIndex + part1Len));
+                 currentDigitIndex += part1Len;
+             }
+             if (currentDigitIndex < digits.length) {
+                 sequence.push('-');
+                 const part2Len = Math.min(2, digits.length - currentDigitIndex);
+                 sequence.push(...digits.slice(currentDigitIndex, currentDigitIndex + part2Len));
+                 currentDigitIndex += part2Len;
+             }
+              if (currentDigitIndex < digits.length) {
+                 sequence.push('-');
+                 const part3Len = Math.min(2, digits.length - currentDigitIndex);
+                 sequence.push(...digits.slice(currentDigitIndex, currentDigitIndex + part3Len));
+                 currentDigitIndex += part3Len;
+             }
+              if (currentDigitIndex < digits.length) {
+                  sequence.push('-');
+                  sequence.push(...digits.slice(currentDigitIndex));
+              }
+             return sequence;
+        }
+
+        // --- LocalStorage Functions ---
+        function loadAllProgress() {
+            try {
+                const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (savedData) {
+                    return JSON.parse(savedData);
+                }
+            } catch (e) {
+                console.error("Error loading progress from localStorage:", e);
+                localStorage.removeItem(LOCAL_STORAGE_KEY);
+            }
+            return {};
+        }
+
+        function saveCurrentProgress() {
+            if (!gameState.mode) return;
+
+            try {
+                const allProgress = loadAllProgress();
+                const levelToSave = Math.min(gameState.level, gameState.maxLevel);
+                allProgress[gameState.mode] = {
+                    level: levelToSave,
+                    score: gameState.score
+                };
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allProgress));
+            } catch (e) {
+                console.error("Error saving progress to localStorage:", e);
+            }
+        }
+
+        function resetAllProgress() {
+            if (confirm("Вы уверены, что хотите сбросить весь сохраненный прогресс для всех режимов?")) {
+                try {
+                    localStorage.removeItem(LOCAL_STORAGE_KEY);
+                    alert("Прогресс сброшен.");
+                    if (gameState.mode) {
+                         gameState.level = 1;
+                         gameState.score = 0;
+                         updateUI();
+                    }
+                } catch (e) {
+                    console.error("Error resetting progress:", e);
+                    alert("Не удалось сбросить прогресс.");
+                }
+            }
+        }
+
+        const gameState = {
+            mode: null,
+            level: 1,
+            sequence: [],
+            originalDigits: [],
+            score: 0,
+            maxLevel: 30,
+            memorizationTimeBase: 1500,
+            timePerItem: 250,
+            minSequenceLength: 2,
+            difficultySettings: {
+                 numbers: { 
+                     minLength: 3, 
+                     maxLength: 20, 
+                     generateSequence: (level) => { 
+                         const length = calculateSequenceLength(level, gameState.difficultySettings.numbers.minLength, gameState.difficultySettings.numbers.maxLength); 
+                         let sequence = []; 
+                         for (let i = 0; i < length; i++) { 
+                             sequence.push(Math.floor(Math.random() * 10)); 
+                         } 
+                         return sequence; 
+                     } 
+                 },
+                 phones: { 
+                     minLength: 7, 
+                     maxLength: 15, 
+                     generateSequence: (level) => { 
+                         const totalDigits = calculateSequenceLength(level, gameState.difficultySettings.phones.minLength, gameState.difficultySettings.phones.maxLength); 
+                         gameState.originalDigits = []; 
+                         for (let i = 0; i < totalDigits; i++) { 
+                             gameState.originalDigits.push(Math.floor(Math.random() * 10)); 
+                         } 
+                         return formatPhoneSequence(gameState.originalDigits); 
+                     } 
+                 },
+                 letters: { 
+                     minLength: 4, 
+                     maxLength: 20, 
+                     generateSequence: (level) => { 
+                         const length = calculateSequenceLength(level, gameState.difficultySettings.letters.minLength, gameState.difficultySettings.letters.maxLength); 
+                         const alphabet = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'; 
+                         let sequence = []; 
+                         for (let i = 0; i < length; i++) { 
+                             const randomIndex = Math.floor(Math.random() * alphabet.length); 
+                             sequence.push(alphabet[randomIndex]); 
+                         } 
+                         return sequence; 
+                     } 
+                 }
+            }
+        };
+
+        // DOM elements
+        const modeSelection = document.getElementById('modeSelection');
+        const gameScreen = document.getElementById('gameScreen');
+        const levelDisplay = document.getElementById('level');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const progressBar = document.getElementById('progressBar');
+        const instructionText = document.getElementById('instructionText');
+        const memorizationAreaWrapper = document.getElementById('memorizationAreaWrapper');
+        const memorizationArea = document.getElementById('memorizationArea');
+        const sequenceDisplay = document.getElementById('sequenceDisplay');
+        const reduceSequenceBtn = document.getElementById('reduceSequenceBtn');
+        const inputArea = document.getElementById('inputArea');
+        const userInput = document.getElementById('userInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const removeLastInputBtn = document.getElementById('removeLastInputBtn');
+        const resultArea = document.getElementById('resultArea');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultText = document.getElementById('resultText');
+        const resultMessage = document.getElementById('resultMessage');
+        const correctAnswer = document.getElementById('correctAnswer');
+        const nextBtn = document.getElementById('nextBtn');
+        const backBtn = document.getElementById('backBtn');
+        const resetProgressBtn = document.getElementById('resetProgressBtn');
+
+        // Event Handlers
+        backBtn.addEventListener('click', returnToModeSelection);
+        submitBtn.addEventListener('click', checkAnswer);
+        userInput.addEventListener('keypress', (e) => {
+            if (!inputArea.classList.contains('hidden') && e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+        removeLastInputBtn.addEventListener('click', () => {
+            userInput.value = userInput.value.slice(0, -1);
+            userInput.focus();
+        });
+        reduceSequenceBtn.addEventListener('click', reduceMemorizationSequence);
+        nextBtn.addEventListener('click', handleNextButtonClick);
+        resetProgressBtn.addEventListener('click', resetAllProgress);
+
+        // Game Functions
+        function updateUI() {
+            levelDisplay.textContent = gameState.level;
+            scoreDisplay.textContent = gameState.score;
+            updateProgress();
+        }
+
+        function reduceMemorizationSequence() {
+              let currentLength;
+              let minLength = gameState.minSequenceLength;
+
+              if (gameState.mode === 'phones') {
+                  currentLength = gameState.originalDigits.length;
+                  minLength = Math.max(minLength, 3);
+                  if (currentLength > minLength) {
+                      gameState.originalDigits.pop();
+                      gameState.sequence = formatPhoneSequence(gameState.originalDigits);
+                  }
+              } else {
+                  currentLength = gameState.sequence.length;
+                  if (currentLength > minLength) {
+                     gameState.sequence.pop();
+                  }
+              }
+
+              if (currentLength > minLength) {
+                 sequenceDisplay.textContent = gameState.sequence.join('');
+                 sequenceDisplay.classList.add('pulse');
+                 setTimeout(() => sequenceDisplay.classList.remove('pulse'), 500);
+              }
+
+              if ( (gameState.mode === 'phones' && gameState.originalDigits.length <= minLength) ||
+                   (gameState.mode !== 'phones' && gameState.sequence.length <= minLength) ) {
+                  reduceSequenceBtn.disabled = true;
+              }
+        }
+
+        function handleNextButtonClick() {
+             if (nextBtn.textContent.includes('Начать заново')) {
+                 restartGame();
+             } else if (nextBtn.textContent.includes('Попробовать снова')) {
+                 startLevel();
+             } else {
+                 nextLevel();
+             }
+        }
+
+        function restartGame() {
+            gameState.level = 1;
+            gameState.score = 0;
+            resetNextButton();
+            updateUI();
+            startLevel();
+        }
+
+        function resetNextButton() {
+             nextBtn.innerHTML = 'Следующий уровень <i class="fas fa-arrow-right ml-2"></i>';
+             nextBtn.disabled = false;
+        }
+
+        function startGame(mode) {
+            gameState.mode = mode;
+            const allProgress = loadAllProgress();
+            const savedModeData = allProgress[mode];
+
+            if (savedModeData && savedModeData.level < gameState.maxLevel) {
+                gameState.level = savedModeData.level;
+                gameState.score = savedModeData.score;
+            } else {
+                gameState.level = 1;
+                gameState.score = 0;
+            }
+
+            resetNextButton();
+            modeSelection.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('fade-in');
+            updateUI();
+            startLevel();
+        }
+
+        function startLevel() {
+            inputArea.classList.add('hidden');
+            resultArea.classList.add('hidden');
+            resultArea.className = 'hidden p-6 rounded-xl shadow-lg text-white text-center mb-6 neon-border';
+            memorizationAreaWrapper.classList.remove('hidden');
+            instructionText.textContent = 'Запомните показанную последовательность';
+            userInput.value = '';
+            reduceSequenceBtn.classList.add('hidden');
+            reduceSequenceBtn.disabled = false;
+
+            gameState.sequence = gameState.difficultySettings[gameState.mode].generateSequence(gameState.level);
+            sequenceDisplay.textContent = gameState.sequence.join('');
+            sequenceDisplay.classList.add('pulse');
+            reduceSequenceBtn.classList.remove('hidden');
+
+            let initialLength = (gameState.mode === 'phones') ? gameState.originalDigits.length : gameState.sequence.length;
+            let minLengthCheck = (gameState.mode === 'phones') ? Math.max(gameState.minSequenceLength, 3) : gameState.minSequenceLength;
+            if (initialLength <= minLengthCheck) {
+                reduceSequenceBtn.disabled = true;
+            }
+
+            const levelPenalty = Math.max(0, (gameState.level - 1) * 25);
+            const calculatedTime = gameState.memorizationTimeBase + (gameState.sequence.length * gameState.timePerItem) - levelPenalty;
+            const memorizationTime = Math.max(800, calculatedTime);
+
+            setTimeout(() => {
+                if (!gameScreen.classList.contains('hidden')) {
+                    memorizationAreaWrapper.classList.add('hidden');
+                    sequenceDisplay.textContent = '';
+                    sequenceDisplay.classList.remove('pulse');
+                    reduceSequenceBtn.classList.add('hidden');
+                    showInputArea();
+                }
+            }, memorizationTime);
+        }
+
+        function showInputArea() {
+             instructionText.textContent = 'Введите запомненную последовательность';
+             inputArea.classList.remove('hidden');
+             inputArea.classList.add('fade-in');
+             userInput.focus();
+        }
+
+        function checkAnswer() {
+             if (inputArea.classList.contains('hidden')) return;
+             const userAnswer = userInput.value.trim();
+             let correctSequenceString;
+             let isCorrect;
+
+             if (gameState.mode === 'phones') {
+                 const correctDigits = gameState.originalDigits.join('');
+                 const userAnswerDigits = userAnswer.replace(/\D/g, '');
+                 isCorrect = (userAnswerDigits === correctDigits);
+                 correctSequenceString = gameState.sequence.join('');
+             } else {
+                 correctSequenceString = gameState.sequence.join('');
+                 if (gameState.mode === 'letters') {
+                     isCorrect = (userAnswer.toUpperCase() === correctSequenceString.toUpperCase());
+                 } else {
+                     isCorrect = (userAnswer === correctSequenceString);
+                 }
+             }
+             showResult(isCorrect, correctSequenceString);
+        }
+
+        function showResult(isCorrect, correctAnswerText) {
+            inputArea.classList.add('hidden');
+            resultArea.classList.remove('hidden');
+            resultArea.classList.add('fade-in');
+            resetNextButton();
+
+            if (isCorrect) {
+                 resultArea.className = 'p-6 rounded-xl shadow-lg text-white text-center mb-6 success-bg fade-in neon-border';
+                 resultIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+                 resultText.textContent = 'Правильно!';
+                 resultMessage.textContent = 'Отличная работа!';
+                 correctAnswer.textContent = '';
+
+                 gameState.score += gameState.level;
+                 updateUI();
+                 saveCurrentProgress();
+
+                 if (gameState.level >= gameState.maxLevel) {
+                     showGameComplete();
+                 } else {
+                     nextBtn.classList.remove('hidden');
+                     nextBtn.focus();
+                 }
+            } else {
+                 resultArea.className = 'p-6 rounded-xl shadow-lg text-white text-center mb-6 error-bg fade-in neon-border';
+                 resultIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+                 resultText.textContent = 'Неправильно';
+                 resultMessage.textContent = 'Попробуйте еще раз на этом уровне.';
+                 correctAnswer.textContent = `Правильный ответ: ${correctAnswerText}`;
+                 nextBtn.classList.remove('hidden');
+                 nextBtn.innerHTML = 'Попробовать снова <i class="fas fa-redo ml-2"></i>';
+                 nextBtn.focus();
+
+                 resultArea.classList.add('shake');
+                 setTimeout(() => {
+                     if (resultArea && resultArea.classList.contains('shake')) {
+                         resultArea.classList.remove('shake');
+                     }
+                 }, 300);
+            }
+        }
+
+        function nextLevel() {
+            if (gameState.level < gameState.maxLevel) {
+                 gameState.level++;
+                 updateUI();
+                 resetNextButton();
+                 startLevel();
+             } else {
+                showGameComplete();
+            }
+        }
+
+        function updateProgress() {
+             const progress = Math.min(100, ((gameState.level -1) / gameState.maxLevel) * 100);
+            progressBar.style.width = `${progress}%`;
+        }
+
+        function showGameComplete() {
+             resultArea.className = 'p-6 rounded-xl shadow-lg text-white text-center mb-6 bg-gradient-to-r from-purple-600 to-blue-600 fade-in neon-border';
+             resultIcon.innerHTML = '<i class="fas fa-trophy"></i>';
+             resultText.textContent = 'Тренировка завершена!';
+             resultMessage.textContent = `Вы успешно прошли ${gameState.maxLevel} уровней!`;
+             correctAnswer.textContent = `Ваш итоговый счет: ${gameState.score} очков`;
+
+             saveCurrentProgress();
+             nextBtn.innerHTML = 'Начать заново <i class="fas fa-play ml-2"></i>';
+             nextBtn.classList.remove('hidden');
+             nextBtn.focus();
+        }
+
+        function returnToModeSelection() {
+            saveCurrentProgress();
+            gameState.mode = null;
+            gameScreen.classList.add('hidden');
+            modeSelection.classList.remove('hidden');
+            modeSelection.classList.add('fade-in');
+        }
+    </script>
+</body>
+</html>

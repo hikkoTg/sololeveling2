@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Математическое мышление</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-dark: #0f172a;
+            --neon-shadow: 0 0 10px #00f2ff, 0 0 20px rgba(0, 242, 255, 0.5);
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+            background: var(--neon-dark);
+            color: #f8fafc;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body.light-mode {
+            background: #ffffff;
+            color: #1e293b;
+        }
+        
+        body.dark-mode {
+            background: var(--neon-dark);
+            color: #f8fafc;
+        }
+        
+        .card {
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            margin-bottom: 1rem;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .light-mode .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: var(--neon-shadow);
+            border: 1px solid var(--neon-blue);
+        }
+        
+        .light-mode .card:hover {
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .btn-primary, .btn-secondary {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            max-width: 280px;
+            margin: 0 auto;
+            display: block;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            touch-action: manipulation;
+        }
+        
+        .light-mode .btn-primary {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--neon-shadow);
+            background: rgba(0, 242, 255, 0.2);
+        }
+        
+        .light-mode .btn-primary:hover {
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .light-mode .btn-secondary {
+            background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 100%);
+            color: white;
+            border: none;
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 10px #ff9a9e, 0 0 20px rgba(255, 154, 158, 0.5);
+            background: rgba(255, 154, 158, 0.2);
+        }
+        
+        .light-mode .btn-secondary:hover {
+            box-shadow: 0 10px 20px rgba(255, 154, 158, 0.4);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .floating {
+            animation: floating 6s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+        
+        .theme-switch {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 100;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 25px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--neon-blue);
+            transition: .4s;
+            border-radius: 25px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #ccc;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        
+        .dark-mode .text-gray-800 {
+            color: #f8fafc;
+        }
+        
+        .dark-mode .text-gray-600 {
+            color: #cbd5e1;
+        }
+        
+        .dark-mode .bg-white {
+            background-color: rgba(15, 23, 42, 0.8);
+        }
+        
+        .dark-mode .bg-indigo-50 {
+            background-color: rgba(0, 242, 255, 0.05);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
+        
+        .dark-mode .text-indigo-200 {
+            color: var(--neon-blue);
+        }
+        
+        .header-title {
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+        
+        .light-mode .header-title {
+            color: #1e293b;
+            text-shadow: none;
+        }
+        
+        .feature-card {
+            border: 1px solid rgba(0, 242, 255, 0.2);
+        }
+        
+        .light-mode .feature-card {
+            border: 1px solid #e2e8f0;
+        }
+        
+        /* Math problem styles */
+        .math-problem {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            text-align: center;
+            word-break: break-all;
+        }
+        
+        .answer-input {
+            font-size: 1.5rem;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            width: 100%;
+            max-width: 200px;
+            margin: 0 auto;
+            border: 2px solid var(--neon-blue);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+        }
+        
+        .answer-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.3);
+        }
+        
+        .light-mode .answer-input {
+            background: white;
+            color: #1e293b;
+            border: 2px solid #667eea;
+        }
+        
+        .result-message {
+            font-size: 1.1rem;
+            margin: 1rem 0;
+            min-height: 30px;
+            text-align: center;
+            padding: 0 1rem;
+        }
+        
+        .correct {
+            color: #4ade80;
+        }
+        
+        .incorrect {
+            color: #f87171;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 1rem 0;
+            gap: 0.5rem;
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        
+        .operation-btn {
+            padding: 0.6rem 0.8rem;
+            margin: 0.2rem;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .operation-btn.active {
+            background: var(--neon-blue);
+            color: var(--neon-dark);
+        }
+        
+        .light-mode .operation-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .level-btn {
+            padding: 0.6rem 0.8rem;
+            margin: 0.2rem;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .level-btn.active {
+            background: var(--neon-blue);
+            color: var(--neon-dark);
+        }
+        
+        .light-mode .level-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        /* Timer styles */
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 640px) {
+            .header-title {
+                font-size: 1.8rem;
+                margin-top: 3rem;
+            }
+            
+            .header-subtitle {
+                font-size: 0.95rem;
+                padding: 0 1rem;
+            }
+            
+            .card {
+                padding: 1.2rem;
+                margin-bottom: 1rem;
+            }
+            
+            .feature-card {
+                padding: 1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .features-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-primary, .btn-secondary {
+                padding: 0.8rem;
+                font-size: 0.95rem;
+                max-width: 240px;
+            }
+            
+            .switch {
+                width: 42px;
+                height: 22px;
+            }
+            
+            .slider:before {
+                height: 16px;
+                width: 16px;
+            }
+            
+            input:checked + .slider:before {
+                transform: translateX(20px);
+            }
+            
+            .math-problem {
+                font-size: 1.6rem;
+            }
+            
+            .answer-input {
+                font-size: 1.3rem;
+                max-width: 160px;
+                padding: 0.7rem 1rem;
+            }
+            
+            .operation-btn, .level-btn {
+                padding: 0.5rem 0.7rem;
+                font-size: 0.85rem;
+                min-width: 70px;
+            }
+            
+            .stat-value {
+                font-size: 1.2rem;
+            }
+        }
+        
+        /* Hamburger menu for mobile */
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: var(--neon-dark);
+            z-index: 90;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .light-mode .mobile-menu {
+            background: white;
+        }
+        
+        .mobile-menu.active {
+            display: block;
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 100;
+            background: rgba(0, 242, 255, 0.2);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        
+        .light-mode .mobile-menu-btn {
+            background: #e2e8f0;
+            color: #1e293b;
+            border: none;
+        }
+        
+        @media (max-width: 640px) {
+            .mobile-menu-btn {
+                display: flex;
+            }
+            
+            body {
+                padding: 0.5rem;
+            }
+            
+            .w-full {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+        }
+        
+        /* Keyboard for mobile */
+        .virtual-keyboard {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.5rem;
+        }
+        
+        .keyboard-btn {
+            padding: 0.8rem;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            text-align: center;
+            touch-action: manipulation;
+        }
+        
+        .keyboard-btn:active {
+            background: rgba(0, 242, 255, 0.3);
+        }
+        
+        .light-mode .keyboard-btn {
+            background: rgba(226, 232, 240, 0.5);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        
+        .light-mode .keyboard-btn:active {
+            background: rgba(226, 232, 240, 0.8);
+        }
+        
+        @media (max-width: 640px) {
+            .virtual-keyboard {
+                display: grid;
+            }
+        }
+        
+        /* Better input for mobile */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        #video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -1;
+            object-fit: cover;
+            filter: brightness(0.5);
+        }
+    </style>
+    <script src="sounds.js" defer></script>
+</head>
+<body class="dark-mode flex flex-col items-center justify-start p-2 sm:p-4">
+    <video autoplay loop muted playsinline id="video-background" style="display: none;">
+        <source src="background.mp4" type="video/mp4">
+    </video>
+
+    <!-- Mobile Menu Button -->
+    <div class="mobile-menu-btn clickable-sound" id="mobileMenuBtn">
+        <i class="fas fa-bars"></i>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="flex flex-col space-y-3">
+            <a href="index.html" class="text-gray-300 hover:text-neon-blue py-2 px-4 rounded clickable-sound">Главная</a>
+            <a href="page2.html" class="text-neon-blue dark:text-white py-2 px-4 rounded clickable-sound">Тренировки</a>
+            <a href="index.html" class="text-gray-300 hover:text-neon-blue py-2 px-4 rounded clickable-sound">Прогресс</a>
+            <a href="settings.html" class="text-gray-300 hover:text-neon-blue py-2 px-4 rounded clickable-sound">Настройки</a>
+        </div>
+    </div>
+    
+    <!-- Theme Switch -->
+    <div class="theme-switch">
+        <label class="switch">
+            <input type="checkbox" id="theme-toggle" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+    
+    <div class="w-full max-w-4xl px-2 sm:px-4 mt-10 sm:mt-0">
+        <!-- Header -->
+        <header class="text-center mb-6 sm:mb-8">
+            <h1 class="text-3xl sm:text-5xl font-bold mb-3 sm:mb-4 header-title">Математическое мышление</h1>
+            <p class="text-sm sm:text-xl text-gray-300 header-subtitle">Тренируйте свои математические способности</p>
+        </header>
+        
+        <!-- Main Content -->
+        <main>
+            <!-- Math Training Card -->
+            <div class="card rounded-xl overflow-hidden transition-all duration-300 p-4 sm:p-6 mb-6 sm:mb-8">
+                <div class="flex flex-col items-center">
+                    <!-- Operation Selection -->
+                    <div class="mb-4 sm:mb-6 text-center">
+                        <h3 class="text-base sm:text-lg font-semibold mb-2">Операция:</h3>
+                        <div class="flex flex-wrap justify-center gap-1">
+                            <button class="operation-btn bg-blue-900/20 text-blue-400" data-operation="addition">+</button>
+                            <button class="operation-btn bg-green-900/20 text-green-400" data-operation="subtraction">-</button>
+                            <button class="operation-btn bg-yellow-900/20 text-yellow-400" data-operation="multiplication">×</button>
+                            <button class="operation-btn bg-purple-900/20 text-purple-400" data-operation="division">÷</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Level Selection -->
+                    <div class="mb-4 sm:mb-6 text-center">
+                        <h3 class="text-base sm:text-lg font-semibold mb-2">Сложность:</h3>
+                        <div class="flex flex-wrap justify-center gap-1">
+                            <button class="level-btn bg-blue-900/20 text-blue-400" data-level="1">2 цифры</button>
+                            <button class="level-btn bg-green-900/20 text-green-400" data-level="2">3 цифры</button>
+                            <button class="level-btn bg-yellow-900/20 text-yellow-400" data-level="3">4 цифры</button>
+                            <button class="level-btn bg-purple-900/20 text-purple-400" data-level="4">Случайно</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Math Problem Display -->
+                    <div class="math-problem" id="mathProblem">12 + 34 = ?</div>
+                    
+                    <!-- Answer Input -->
+                    <input type="number" class="answer-input" id="answerInput" placeholder="Ответ" inputmode="numeric">
+                    
+                    <!-- Virtual Keyboard for Mobile -->
+                    <div class="virtual-keyboard" id="virtualKeyboard">
+                        <button class="keyboard-btn" data-value="1">1</button>
+                        <button class="keyboard-btn" data-value="2">2</button>
+                        <button class="keyboard-btn" data-value="3">3</button>
+                        <button class="keyboard-btn" data-value="4">4</button>
+                        <button class="keyboard-btn" data-value="5">5</button>
+                        <button class="keyboard-btn" data-value="6">6</button>
+                        <button class="keyboard-btn" data-value="7">7</button>
+                        <button class="keyboard-btn" data-value="8">8</button>
+                        <button class="keyboard-btn" data-value="9">9</button>
+                        <button class="keyboard-btn" data-value="0">0</button>
+                        <button class="keyboard-btn" data-value="-">-</button>
+                        <button class="keyboard-btn bg-red-500/20 text-red-400" id="keyboardBackspace"><i class="fas fa-backspace"></i></button>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button class="btn-primary font-medium py-2 px-6 rounded-full mt-3 sm:mt-4" id="submitAnswer">
+                        <span class="relative z-20">Проверить</span>
+                    </button>
+                    
+                    <!-- Result Message -->
+                    <div class="result-message" id="resultMessage"></div>
+                    
+                    <!-- Timer -->
+                    <div class="timer" id="timer">Время: 0 сек</div>
+                    
+                    <!-- Stats -->
+                    <div class="stats w-full max-w-md">
+                        <div class="stat-item">
+                            <div class="stat-value" id="correctCount">0</div>
+                            <div class="stat-label">Правильно</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="wrongCount">0</div>
+                            <div class="stat-label">Ошибки</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalCount">0</div>
+                            <div class="stat-label">Всего</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Next Button -->
+                    <button class="btn-secondary font-medium py-2 px-6 rounded-full mt-3 sm:mt-4 hidden" id="nextProblem">
+                        <span class="relative z-20">Далее</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Features Section -->
+        <section class="mt-6 sm:mt-8">
+            <h2 class="text-xl sm:text-2xl font-bold text-center text-white mb-4 sm:mb-6">Почему стоит тренироваться?</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 features-section">
+                <div class="bg-slate-800/50 p-3 sm:p-6 rounded-xl feature-card">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-900/20 rounded-full flex items-center justify-center mb-2 sm:mb-3 mx-auto">
+                        <i class="fas fa-brain text-blue-400 text-lg sm:text-xl"></i>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-semibold mb-1 text-white text-center">Мышление</h3>
+                    <p class="text-xs sm:text-sm text-gray-300 text-center">Развивает логику и аналитику</p>
+                </div>
+                <div class="bg-slate-800/50 p-3 sm:p-6 rounded-xl feature-card">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-900/20 rounded-full flex items-center justify-center mb-2 sm:mb-3 mx-auto">
+                        <i class="fas fa-clock text-green-400 text-lg sm:text-xl"></i>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-semibold mb-1 text-white text-center">Скорость</h3>
+                    <p class="text-xs sm:text-sm text-gray-300 text-center">Улучшает скорость счёта</p>
+                </div>
+                <div class="bg-slate-800/50 p-3 sm:p-6 rounded-xl feature-card">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-900/20 rounded-full flex items-center justify-center mb-2 sm:mb-3 mx-auto">
+                        <i class="fas fa-graduation-cap text-yellow-400 text-lg sm:text-xl"></i>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-semibold mb-1 text-white text-center">Учёба</h3>
+                    <p class="text-xs sm:text-sm text-gray-300 text-center">Помогает в обучении</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply video setting
+            const videoBackground = document.getElementById('video-background');
+            if (videoBackground) {
+                const SETTINGS_KEY = 'app_settings';
+                const savedSettings = localStorage.getItem(SETTINGS_KEY);
+                let showVideo = true; // Default to true
+                if (savedSettings) {
+                    try {
+                        const settings = JSON.parse(savedSettings);
+                        if (settings.showVideoBackground === false) {
+                            showVideo = false;
+                        }
+                    } catch (e) { console.error("Could not parse settings, using default for video.", e); }
+                }
+                videoBackground.style.display = showVideo ? 'block' : 'none';
+            }
+
+            // Theme toggle functionality
+            const themeToggle = document.getElementById('theme-toggle');
+            const body = document.body;
+            
+            // Set initial theme based on checkbox
+            if (themeToggle.checked) {
+                body.classList.add('dark-mode');
+                body.classList.remove('light-mode');
+            } else {
+                body.classList.add('light-mode');
+                body.classList.remove('dark-mode');
+            }
+            
+            themeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    body.classList.add('dark-mode');
+                    body.classList.remove('light-mode');
+                } else {
+                    body.classList.add('light-mode');
+                    body.classList.remove('dark-mode');
+                }
+            });
+            
+            // Mobile menu functionality
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            
+            mobileMenuBtn.addEventListener('click', function() {
+                mobileMenu.classList.toggle('active');
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!mobileMenu.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
+                    mobileMenu.classList.remove('active');
+                }
+            });
+            
+            // Math Training Logic
+            let currentOperation = 'addition';
+            let currentLevel = '1';
+            let num1, num2, correctAnswer;
+            let correctCount = 0;
+            let wrongCount = 0;
+            let totalCount = 0;
+            let startTime;
+            let timerInterval;
+            
+            // DOM Elements
+            const mathProblemEl = document.getElementById('mathProblem');
+            const answerInputEl = document.getElementById('answerInput');
+            const resultMessageEl = document.getElementById('resultMessage');
+            const submitBtn = document.getElementById('submitAnswer');
+            const nextBtn = document.getElementById('nextProblem');
+            const correctCountEl = document.getElementById('correctCount');
+            const wrongCountEl = document.getElementById('wrongCount');
+            const totalCountEl = document.getElementById('totalCount');
+            const timerEl = document.getElementById('timer');
+            const operationBtns = document.querySelectorAll('.operation-btn');
+            const levelBtns = document.querySelectorAll('.level-btn');
+            const keyboardBtns = document.querySelectorAll('.keyboard-btn');
+            const keyboardBackspace = document.getElementById('keyboardBackspace');
+            
+            // Initialize
+            generateProblem();
+            updateStats();
+            
+            // Event Listeners
+            submitBtn.addEventListener('click', checkAnswer);
+            nextBtn.addEventListener('click', nextProblem);
+            answerInputEl.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+            
+            // Focus input when clicking anywhere on card (for mobile)
+            document.querySelector('.card').addEventListener('click', function() {
+                answerInputEl.focus();
+            });
+            
+            // Virtual keyboard functionality
+            keyboardBtns.forEach(btn => {
+                if (btn.id !== 'keyboardBackspace') {
+                    btn.addEventListener('click', function() {
+                        const currentValue = answerInputEl.value;
+                        const newValue = currentValue + this.dataset.value;
+                        answerInputEl.value = newValue;
+                        
+                        // Trigger input event for validation
+                        const event = new Event('input', { bubbles: true });
+                        answerInputEl.dispatchEvent(event);
+                    });
+                }
+            });
+            
+            keyboardBackspace.addEventListener('click', function() {
+                const currentValue = answerInputEl.value;
+                answerInputEl.value = currentValue.slice(0, -1);
+            });
+            
+            // Operation buttons
+            operationBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    operationBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentOperation = this.dataset.operation;
+                    nextProblem();
+                });
+            });
+            
+            // Level buttons
+            levelBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    levelBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentLevel = this.dataset.level;
+                    nextProblem();
+                });
+            });
+            
+            // Set first operation and level as active
+            operationBtns[0].classList.add('active');
+            levelBtns[0].classList.add('active');
+            
+            // Functions
+            function generateProblem() {
+                // Clear previous timer
+                clearInterval(timerInterval);
+                
+                // Generate numbers based on level
+                switch(currentLevel) {
+                    case '1': // 2-digit numbers
+                        num1 = Math.floor(Math.random() * 90) + 10;
+                        num2 = Math.floor(Math.random() * 90) + 10;
+                        break;
+                    case '2': // 3-digit numbers
+                        num1 = Math.floor(Math.random() * 900) + 100;
+                        num2 = Math.floor(Math.random() * 900) + 100;
+                        break;
+                    case '3': // 4-digit numbers
+                        num1 = Math.floor(Math.random() * 9000) + 1000;
+                        num2 = Math.floor(Math.random() * 9000) + 1000;
+                        break;
+                    case '4': // Random digit numbers (2-4 digits)
+                        const digits = Math.floor(Math.random() * 3) + 2;
+                        const min = Math.pow(10, digits - 1);
+                        const max = Math.pow(10, digits) - 1;
+                        num1 = Math.floor(Math.random() * (max - min + 1)) + min;
+                        num2 = Math.floor(Math.random() * (max - min + 1)) + min;
+                        break;
+                }
+                
+                // Special handling for division to ensure integer results
+                if (currentOperation === 'division') {
+                    // For division, we'll make sure the result is an integer
+                    num2 = Math.floor(Math.random() * 12) + 1; // divisor from 1 to 12
+                    num1 = num2 * (Math.floor(Math.random() * 12) + 1); // dividend is multiple of divisor
+                }
+                
+                // Calculate correct answer based on operation
+                switch(currentOperation) {
+                    case 'addition':
+                        correctAnswer = num1 + num2;
+                        mathProblemEl.textContent = `${num1} + ${num2} = ?`;
+                        break;
+                    case 'subtraction':
+                        // Ensure num1 is larger than num2 for positive results
+                        if (num1 < num2) [num1, num2] = [num2, num1];
+                        correctAnswer = num1 - num2;
+                        mathProblemEl.textContent = `${num1} - ${num2} = ?`;
+                        break;
+                    case 'multiplication':
+                        // For multiplication, reduce numbers for higher levels to keep it manageable
+                        if (currentLevel === '2') {
+                            num1 = Math.floor(num1 / 10);
+                            num2 = Math.floor(num2 / 10);
+                        } else if (currentLevel === '3' || currentLevel === '4') {
+                            num1 = Math.floor(num1 / 100);
+                            num2 = Math.floor(num2 / 100);
+                        }
+                        correctAnswer = num1 * num2;
+                        mathProblemEl.textContent = `${num1} × ${num2} = ?`;
+                        break;
+                    case 'division':
+                        correctAnswer = num1 / num2;
+                        mathProblemEl.textContent = `${num1} ÷ ${num2} = ?`;
+                        break;
+                }
+                
+                // Reset UI
+                answerInputEl.value = '';
+                resultMessageEl.textContent = '';
+                resultMessageEl.className = 'result-message';
+                nextBtn.classList.add('hidden');
+                submitBtn.classList.remove('hidden');
+                
+                // Focus input
+                answerInputEl.focus();
+                
+                // Start timer
+                startTime = new Date();
+                timerInterval = setInterval(updateTimer, 100);
+            }
+            
+            function checkAnswer() {
+                const userAnswer = parseFloat(answerInputEl.value);
+                
+                if (isNaN(userAnswer)) {
+                    resultMessageEl.textContent = 'Введите число';
+                    resultMessageEl.className = 'result-message incorrect';
+                    return;
+                }
+                
+                totalCount++;
+                
+                if (Math.abs(userAnswer - correctAnswer) < 0.0001) { // Account for floating point precision
+                    resultMessageEl.textContent = 'Правильно! 👍';
+                    resultMessageEl.className = 'result-message correct';
+                    correctCount++;
+                } else {
+                    resultMessageEl.textContent = `Ошибка! Правильно: ${correctAnswer}`;
+                    resultMessageEl.className = 'result-message incorrect';
+                    wrongCount++;
+                }
+                
+                updateStats();
+                clearInterval(timerInterval);
+                submitBtn.classList.add('hidden');
+                nextBtn.classList.remove('hidden');
+            }
+            
+            function nextProblem() {
+                generateProblem();
+            }
+            
+            function updateStats() {
+                correctCountEl.textContent = correctCount;
+                wrongCountEl.textContent = wrongCount;
+                totalCountEl.textContent = totalCount;
+            }
+            
+            function updateTimer() {
+                const currentTime = new Date();
+                const elapsedTime = (currentTime - startTime) / 1000;
+                timerEl.textContent = `Время: ${elapsedTime.toFixed(1)} сек`;
+            }
+            
+            // Add pulse animation to buttons on hover
+            const buttons = document.querySelectorAll('.btn-primary, .btn-secondary');
+            buttons.forEach(button => {
+                button.addEventListener('mouseenter', function() {
+                    this.classList.add('pulse');
+                });
+                
+                button.addEventListener('mouseleave', function() {
+                    this.classList.remove('pulse');
+                });
+            });
+            
+            // Better touch feedback for mobile
+            const touchElements = document.querySelectorAll('button, .operation-btn, .level-btn, .keyboard-btn');
+            touchElements.forEach(el => {
+                el.addEventListener('touchstart', function() {
+                    this.classList.add('active');
+                });
+                
+                el.addEventListener('touchend', function() {
+                    this.classList.remove('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

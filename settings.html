@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="sounds.js" defer></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap');
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-dark: #0f172a;
+            --neon-shadow: 0 0 10px #00f2ff, 0 0 20px rgba(0, 242, 255, 0.5);
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            min-height: 100vh;
+            background: var(--neon-dark);
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        #video-background {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -1;
+            object-fit: cover;
+            filter: brightness(0.6);
+        }
+        .settings-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: var(--neon-shadow);
+        }
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(0, 242, 255, 0.1);
+        }
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+        .setting-label {
+            font-weight: 600;
+            color: var(--neon-blue);
+        }
+        .setting-description {
+            font-size: 0.875rem;
+            color: #9ca3af;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 25px;
+            flex-shrink: 0;
+            margin-left: 1rem;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #374151;
+            transition: .4s;
+            border-radius: 25px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 19px;
+            width: 19px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--neon-blue);
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin-top: 1.5rem;
+            color: #9ca3af;
+            text-decoration: none;
+            transition: color 0.2s;
+            width: 100%;
+        }
+        .back-link:hover {
+            color: var(--neon-blue);
+        }
+    </style>
+</head>
+<body>
+    <video autoplay loop muted playsinline id="video-background" style="display: none;">
+        <source src="background.mp4" type="video/mp4">
+    </video>
+
+    <div class="settings-card">
+        <h1 class="text-3xl font-bold text-center text-cyan-400 mb-6">Настройки</h1>
+        
+        <div class="setting-item">
+            <div>
+                <p class="setting-label">Фоновое видео</p>
+                <p class="setting-description">Включить анимированный фон на всех страницах.</p>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="toggleVideoBackground">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="setting-item">
+            <div>
+                <p class="setting-label">Звезда навыка</p>
+                <p class="setting-description">Показывать звезду для перехода к редактору блоков.</p>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="toggleSkillStar">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <a href="info.html" class="back-link clickable-sound">
+            <i class="fas fa-arrow-left mr-2"></i>Вернуться назад
+        </a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const SETTINGS_KEY = 'app_settings';
+
+            // DOM Elements
+            const toggleVideoBackground = document.getElementById('toggleVideoBackground');
+            const toggleSkillStar = document.getElementById('toggleSkillStar');
+            const videoBackground = document.getElementById('video-background');
+
+            // --- Settings Object ---
+            let settings = {
+                showVideoBackground: true,
+                showSkillStar: true
+            };
+
+            // --- Functions ---
+            function saveSettings() {
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            }
+
+            function loadSettings() {
+                const savedSettings = localStorage.getItem(SETTINGS_KEY);
+                if (savedSettings) {
+                    try {
+                        settings = { ...settings, ...JSON.parse(savedSettings) };
+                    } catch (e) {
+                        console.error("Error loading settings:", e);
+                        // If settings are corrupt, save the defaults
+                        saveSettings();
+                    }
+                }
+            }
+
+            function applySettings() {
+                // Apply to current page (settings.html)
+                videoBackground.style.display = settings.showVideoBackground ? 'block' : 'none';
+
+                // Update UI toggles
+                toggleVideoBackground.checked = settings.showVideoBackground;
+                toggleSkillStar.checked = settings.showSkillStar;
+            }
+
+            // --- Event Listeners ---
+            toggleVideoBackground.addEventListener('change', () => {
+                settings.showVideoBackground = toggleVideoBackground.checked;
+                videoBackground.style.display = settings.showVideoBackground ? 'block' : 'none';
+                saveSettings();
+            });
+
+            toggleSkillStar.addEventListener('change', () => {
+                settings.showSkillStar = toggleSkillStar.checked;
+                saveSettings();
+            });
+
+            // --- Initialization ---
+            loadSettings();
+            applySettings();
+        });
+    </script>
+</body>
+</html>
