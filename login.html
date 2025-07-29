@@ -2,164 +2,48 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Регистрация</title>
-  <style>
-    /* Стили из index.html */
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(270deg, #0a0a0a, #101010, #0a0a0a);
-      color: #e0e0e0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-    }
-    #video-background {
-        position: fixed;
-        right: 0;
-        bottom: 0;
-        min-width: 100%;
-        min-height: 100%;
-        width: auto;
-        height: auto;
-        z-index: -1;
-        object-fit: cover;
-        filter: brightness(0.6);
-    }
-    
-    .auth-container {
-      background: rgba(0, 0, 0, 0.7);
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0,204,255,0.3);
-      width: 100%;
-      max-width: 400px;
-    }
-
-    .auth-form {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .auth-form input {
-      padding: 10px;
-      border: 1px solid #00ccff;
-      border-radius: 5px;
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      font-size: 16px;
-    }
-
-    .auth-form button {
-      padding: 12px;
-      background: #00ccff;
-      border: none;
-      border-radius: 5px;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    .auth-form button:hover {
-      background: #00aee0;
-    }
-
-    .links {
-      margin-top: 20px;
-      text-align: center;
-    }
-
-    .links a {
-      color: #00ccff;
-      text-decoration: none;
-    }
-  </style>
-  <script src="sounds.js" defer></script>
+  <title>Вход и регистрация</title>
 </head>
 <body>
-  <video autoplay loop muted playsinline id="video-background" style="display: none;">
-      <source src="background.mp4" type="video/mp4">
-  </video>
-
-  <div class="auth-container">
-    <form class="auth-form" id="loginForm">
-      <h2 style="text-align: center; color: #00ccff">Регистрация</h2>
-      <input type="text" id="username" placeholder="Логин" required>
-      <input type="password" id="password" placeholder="Пароль" required>
-      <button type="submit" class="clickable-sound">Зарегистрироваться</button>
-    </form>
-    <div class="links">
-      <a href="index.html" class="clickable-sound">Войти как гость</a>
-    </div>
-  </div>
-
+  <h2>Регистрация</h2>
+  <form id="registerForm">
+    <input type="text" id="regUsername" placeholder="Имя пользователя" required>
+    <input type="password" id="regPassword" placeholder="Пароль" required>
+    <button type="submit">Зарегистрироваться</button>
+  </form>
+  <h2>Вход</h2>
+  <form id="loginForm">
+    <input type="text" id="loginUsername" placeholder="Имя пользователя" required>
+    <input type="password" id="loginPassword" placeholder="Пароль" required>
+    <button type="submit">Войти</button>
+  </form>
+  <div id="message"></div>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Apply video setting
-        const videoBackground = document.getElementById('video-background');
-        if (videoBackground) {
-            const SETTINGS_KEY = 'app_settings';
-            const savedSettings = localStorage.getItem(SETTINGS_KEY);
-            let showVideo = true; // Default to true
-            if (savedSettings) {
-                try {
-                    const settings = JSON.parse(savedSettings);
-                    if (settings.showVideoBackground === false) {
-                        showVideo = false;
-                    }
-                } catch (e) { console.error("Could not parse settings, using default for video.", e); }
-            }
-            videoBackground.style.display = showVideo ? 'block' : 'none';
-        }
+    document.getElementById('registerForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('regUsername').value;
+      const password = document.getElementById('regPassword').value;
+      const res = await fetch('/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      const data = await res.json();
+      document.getElementById('message').innerText = data.message;
+    };
 
-        // Form logic
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-          e.preventDefault();
-          
-          const username = document.getElementById('username').value.trim();
-          const password = document.getElementById('password').value;
-          
-          // Получаем список пользователей из localStorage, если он есть
-          let users = JSON.parse(localStorage.getItem('users')) || [];
-          
-          // Проверяем, существует ли уже пользователь с таким логином
-          const existingUser = users.find(user => user.username === username);
-          
-          if (existingUser) {
-            // Если пароль совпадает, то пропускаем регистрацию и авторизуем пользователя
-            if (existingUser.password === password) {
-              localStorage.setItem('userData', JSON.stringify(existingUser));
-              window.location.href = 'userinfo.html';
-              return;
-            } else {
-              alert("Пользователь с таким логином уже существует, но пароль не совпадает!");
-              return;
-            }
-          }
-          
-          // Если пользователь не найден, создаём нового
-          const userData = {
-            username,
-            password,
-            profile: {
-              level: 1,
-              xp: 0,
-              skills: []
-            }
-          };
-
-          users.push(userData);
-          localStorage.setItem('users', JSON.stringify(users));
-          localStorage.setItem('userData', JSON.stringify(userData));
-          
-          window.location.href = 'userinfo.html';
-        });
-    });
+    document.getElementById('loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username, password})
+      });
+      const data = await res.json();
+      document.getElementById('message').innerText = data.message;
+    };
   </script>
 </body>
 </html>
